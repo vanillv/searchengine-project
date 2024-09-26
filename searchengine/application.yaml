@@ -1,0 +1,9 @@
+config:
+  threadsForSites: 3
+  threadsForPages: 3
+  maxPagesPerSite: 30
+  indexingAvailable: true
+  sites:
+    - "https://www.lenta.ru"
+    - "https://www.skillbox.ru"
+    - "https://www.playback.ru"
