@@ -6,12 +6,14 @@ import org.springframework.stereotype.Repository;
 import searchenginepackage.model.IndexEntity;
 import searchenginepackage.model.PageEntity;
 
-import javax.persistence.criteria.CriteriaBuilder;
 import java.util.List;
 
 @Repository
 public interface IndexRepository extends JpaRepository<IndexEntity, Integer > {
-    List<Integer> findAllLemmasByPageId(Integer pageId);
-    List<PageEntity> findAllPagesByLemmaId(Integer lemmaId);
-    IndexEntity findByPageIdAndLemmaId(Integer pageId, Integer lemmaId);
+    List<Integer> findAllLemmaIdByPageId(Integer pageId);
+    boolean existsByLemmaId();
+    @Query(value = "SELECT")
+    List<Integer> findAllPagesByLemmaId(Integer lemmaId);
+    @Query(value = "SELECT index FROM index WHERE pageId = page_Id, lemmaId = lemma_Id")
+    IndexEntity findByPageIdAndLemmaId(Integer page_Id, Integer lemma_Id);
 }

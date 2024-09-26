@@ -4,6 +4,7 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 import searchenginepackage.config.AppConfig;
 import searchenginepackage.model.PageLinkModel;
@@ -74,5 +75,9 @@ public class ConnectionService {
             Document doc = Jsoup.parse(html);
             return doc.title();
     }
-
+    private String getSnippet(String html, String query) {
+        String body = getBody(html);
+        Document doc = Jsoup.parse(html);
+        Element el = doc.body().clearAttributes().;
+    }
 }

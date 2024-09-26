@@ -9,6 +9,7 @@ import searchenginepackage.model.*;
 import searchenginepackage.repositories.*;
 import searchenginepackage.responses.Response;
 
+import javax.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ForkJoinPool;

@@ -8,6 +8,7 @@ import searchenginepackage.repositories.LemmaRepository;
 import searchenginepackage.repositories.PageRepository;
 import searchenginepackage.repositories.SiteRepository;
 
+import java.net.URLConnection;
 import java.util.*;
 @Service
 public class SearchService {
@@ -49,11 +50,10 @@ public class SearchService {
         queryLemmas.sort(Comparator.comparing(LemmaEntity::getFrequency).reversed());
         LemmaEntity startingLemma = queryLemmas.get(0);
 
-        List<PageEntity> pageList = indexRepo.findAllPagesByLemmaId(startingLemma.getSiteId());
-        for (LemmaEntity lemma : queryLemmas) {
-            for (PageEntity page : pageList) {
-
-            }
+        List<PageEntity> pageList = pageRepo.getByListOfIds(indexRepo.findAllPagesByLemmaId(startingLemma.getSiteId()));
+        for (LemmaEntity queryLemma : queryLemmas) {
+            pageList.removeIf(page -> !indexRepo.
+                    findAllLemmaIdByPageId(page.getId()).contains(queryLemma.getId()));
         }
         return responses;
     };
