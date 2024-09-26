@@ -76,8 +76,8 @@ public class ConnectionService {
             return doc.title();
     }
     private String getSnippet(String html, String query) {
-        String body = getBody(html);
+        //temporary
         Document doc = Jsoup.parse(html);
-        Element el = doc.body().clearAttributes().;
+        return doc.html();
     }
 }
