@@ -75,9 +75,5 @@ public class ConnectionService {
             Document doc = Jsoup.parse(html);
             return doc.title();
     }
-    private String getSnippet(String html, String query) {
-        //temporary
-        Document doc = Jsoup.parse(html);
-        return doc.html();
-    }
+
 }

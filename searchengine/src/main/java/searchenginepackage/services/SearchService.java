@@ -1,6 +1,7 @@
 package searchenginepackage.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 import searchenginepackage.model.*;
 import searchenginepackage.repositories.IndexRepository;
@@ -8,8 +9,8 @@ import searchenginepackage.repositories.LemmaRepository;
 import searchenginepackage.repositories.PageRepository;
 import searchenginepackage.repositories.SiteRepository;
 
-import java.net.URLConnection;
 import java.util.*;
+
 @Service
 public class SearchService {
     private PageRepository pageRepo;
@@ -18,26 +19,44 @@ public class SearchService {
     private IndexRepository indexRepo;
     private MorphologyService morphologyService = new MorphologyService();
     private ConnectionService connectionService = new ConnectionService();
-    @Autowired
-    private SearchService init(PageRepository pageRepository, SiteRepository siteRepository,
-                              LemmaRepository lemmaRepository, IndexRepository indexRepository) {
-        pageRepo = pageRepository; siteRepo = siteRepository; lemmaRepo = lemmaRepository;
-        indexRepo = indexRepository;
-        return this;
-    }
+//    @Autowired
+//    private SearchService init(PageRepository pageRepository, SiteRepository siteRepository,
+//                              LemmaRepository lemmaRepository, IndexRepository indexRepository) {
+//        pageRepo = pageRepository; siteRepo = siteRepository; lemmaRepo = lemmaRepository;
+//        indexRepo = indexRepository;
+//        return this;
+//    }
     public QueryResult searchAllSites(String query, String site, int offset, int limit) {
         QueryResult queryResult = new QueryResult();
-        if(!site.isEmpty()) {
-
+        try {
+            List<QueryResponse> responses;
+            if(!site.isEmpty()) {
+                SiteEntity entity = siteRepo.getReferenceById(siteRepo.findByUrl(site));
+                responses = searchSite(query, entity);
+                if (!responses.isEmpty()) {
+                    queryResult.getData().addAll(searchSite(query, entity));
+                }
+            } else {
+                for (SiteEntity entity : siteRepo.findAll()) {
+                    responses = searchSite(query, entity);
+                    if (!responses.isEmpty()) {
+                        queryResult.getData().addAll(responses);
+                    }
+                }
+            }
+            queryResult.setCount(queryResult.getData().size());
+            queryResult.setResult(true);
+            return queryResult;
+        }  catch (Exception e) {
+            queryResult.setResult(false);
+            return queryResult;
         }
-        queryResult.getData().addAll(searchSite(query, site));
 
-        return queryResult;
+
     }
-    public List<QueryResponse> searchSite(String query, String site) {
+    public List<QueryResponse> searchSite(String query, SiteEntity site) {
         List<QueryResponse> responses = new ArrayList<>();
-        SiteEntity siteEntity = siteRepo.getReferenceById(siteRepo.findByUrl(site));
-        Integer siteId = siteEntity.getId();
+        Integer siteId = site.getId();
         //List<PageEntity> pageList = pageRepo.findAllBySite(siteRepo.findByUrl(site));
         List<String> queryWords = morphologyService.decomposeTextToLemmasWithRank(query).keySet().stream().toList();
         List<LemmaEntity> queryLemmas = new ArrayList<>();
@@ -55,7 +74,57 @@ public class SearchService {
             pageList.removeIf(page -> !indexRepo.
                     findAllLemmaIdByPageId(page.getId()).contains(queryLemma.getId()));
         }
+        for (PageEntity entity : pageList) {
+            String html = entity.getContent();
+            List<String> snippets = getSnippets(queryWords, html);
+        }
         return responses;
     };
-
+    public List<String> getSnippets(List<String> queryWords, String html) {
+        List<String> snippets = new ArrayList<>();
+        List<Element> elements = new ArrayList<>();
+        for (String query : queryWords) {
+            String[] queryLetters = query.split("", 2);
+            String queryFirstLetterToUpCase = queryLetters[0].toUpperCase(Locale.ROOT) + queryLetters[1];
+            elements.addAll(Jsoup.parse(html).getElementsContainingOwnText(query));
+            elements.addAll(Jsoup.parse(html).getElementsContainingOwnText(queryFirstLetterToUpCase));
+            System.out.println(elements.size());
+        }
+        for (String query : queryWords) {
+            String[] queryLetters = query.split("", 2);
+            String queryFirstLetterToUpCase = queryLetters[0].toUpperCase(Locale.ROOT) + queryLetters[1];
+            elements.removeIf(element1 -> !morphologyService.processWholeText(element1.text()).contains(query) &&
+                    !morphologyService.processWholeText(element1.text()).contains(queryFirstLetterToUpCase));
+            System.out.println(elements.size());
+        }
+        for (Element element : elements) {
+            String text = element.text();
+            String[] words = text.split(" ");
+            StringBuffer buffer = new StringBuffer();
+            for (String query : queryWords) {
+                for (String word : words) {
+                    boolean wordContainsQuery = morphologyService.processWord(word).matches(query);
+                    if (wordContainsQuery) {
+                        word = "<b>" + word + "<b>";
+                        System.out.println(word);
+                    };
+                    buffer.append(word + " ");
+                }
+            }
+            snippets.add(buffer.toString());
+        }
+            return snippets;
+        }
+    public static void main(String[] args) {
+        String query = "чехол для смартфона";
+        SearchService service = new SearchService();
+        String html = service.connectionService.getContent("https://www.playback.ru");
+        List<String> queryWords = service.morphologyService.decomposeTextToLemmasWithRank(query).keySet().stream().toList();
+        List<String> snippets = service.getSnippets(queryWords, html);
+        for (String snippet : snippets) {
+            System.out.println(snippet);
+        }
+    }
 }
+
+

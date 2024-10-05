@@ -20,19 +20,19 @@ import java.util.List;
 import java.util.Random;
 
 @Service
-@Component
 public class StatisticsServiceImpl implements StatisticsService {
     private final Random random = new Random();
-    @Autowired
+    //@Autowired
     private PageRepository pageRepo;
-    @Autowired
+    //@Autowired
     private LemmaRepository lemmaRepo;
-    @Autowired
+    //@Autowired
     private SiteRepository siteRepo;
-    List<SiteEntity> siteList = siteRepo.findAll();
-    private final int siteSize = siteList.size();
+
     @Override
     public StatisticsResponse getStatistics() {
+        List<SiteEntity> siteList = siteRepo.findAll();
+        int siteSize = siteList.size();
         TotalStatistics total = new TotalStatistics();
         total.setSites(siteSize);
         total.setIndexing(true);

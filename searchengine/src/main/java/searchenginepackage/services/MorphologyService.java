@@ -20,6 +20,19 @@ public class MorphologyService {
             throw new RuntimeException(e);
         }
     }
+    public String processWord(String word) {
+        String processedWord = word.toLowerCase(Locale.ROOT)
+                .replaceAll("ё", "е").replaceAll(regex, "");
+        return morphology.getNormalForms(processedWord).get(0);
+    }
+    public String processWholeText(String text) {
+        String[] textBits = processText(text);
+        StringBuilder builder = new StringBuilder();
+        for (String bit : textBits) {
+            builder.append(bit);
+        }
+        return builder.toString();
+    }
     private String[] processText(String text) {
         String[] words = text.toLowerCase(Locale.ROOT)
                 .replaceAll("ё", "е").replaceAll(regex, " ").split(" ");
