@@ -84,39 +84,40 @@ public class SearchService {
         List<String> snippets = new ArrayList<>();
         List<Element> elements = new ArrayList<>();
         for (String query : queryWords) {
+            System.out.println(query);
             String[] queryLetters = query.split("", 2);
             String queryFirstLetterToUpCase = queryLetters[0].toUpperCase(Locale.ROOT) + queryLetters[1];
             elements.addAll(Jsoup.parse(html).getElementsContainingOwnText(query));
             elements.addAll(Jsoup.parse(html).getElementsContainingOwnText(queryFirstLetterToUpCase));
             System.out.println(elements.size());
         }
-        for (String query : queryWords) {
-            String[] queryLetters = query.split("", 2);
-            String queryFirstLetterToUpCase = queryLetters[0].toUpperCase(Locale.ROOT) + queryLetters[1];
-            elements.removeIf(element1 -> !morphologyService.processWholeText(element1.text()).contains(query) &&
-                    !morphologyService.processWholeText(element1.text()).contains(queryFirstLetterToUpCase));
-            System.out.println(elements.size());
-        }
+ //     for (String query : queryWords) {
+ //         String[] queryLetters = query.split("", 2);
+ //         String queryFirstLetterToUpCase = queryLetters[0].toUpperCase(Locale.ROOT) + queryLetters[1];
+ //         elements.removeIf(element1 -> !morphologyService.processWholeText(element1.text()).contains(query) &&
+ //                 !morphologyService.processWholeText(element1.text()).contains(queryFirstLetterToUpCase));
+ //         System.out.println(elements.size());
+ //     }
         for (Element element : elements) {
             String text = element.text();
+            System.out.println(text);
             String[] words = text.split(" ");
             StringBuffer buffer = new StringBuffer();
-            for (String query : queryWords) {
-                for (String word : words) {
+            for (String word : words) {
+                    for (String query : queryWords) {
                     boolean wordContainsQuery = morphologyService.processWord(word).matches(query);
-                    if (wordContainsQuery) {
-                        word = "<b>" + word + "<b>";
-                        System.out.println(word);
-                    };
-                    buffer.append(word + " ");
-                }
+                       if (wordContainsQuery) {
+                          word = "<b>" + word + "<b>";
+                       };
+                    }
+              buffer.append(word + " ");
             }
             snippets.add(buffer.toString());
         }
             return snippets;
         }
     public static void main(String[] args) {
-        String query = "чехол для смартфона";
+        String query = "Чехлы для смартфона";
         SearchService service = new SearchService();
         String html = service.connectionService.getContent("https://www.playback.ru");
         List<String> queryWords = service.morphologyService.decomposeTextToLemmasWithRank(query).keySet().stream().toList();

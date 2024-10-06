@@ -21,9 +21,13 @@ public class MorphologyService {
         }
     }
     public String processWord(String word) {
-        String processedWord = word.toLowerCase(Locale.ROOT)
-                .replaceAll("ё", "е").replaceAll(regex, "");
-        return morphology.getNormalForms(processedWord).get(0);
+        try {
+            String processedWord = word.toLowerCase(Locale.ROOT)
+                    .replaceAll("ё", "е").replaceAll(regex, "");
+            return morphology.getNormalForms(processedWord).get(0);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return "";
+        }
     }
     public String processWholeText(String text) {
         String[] textBits = processText(text);
