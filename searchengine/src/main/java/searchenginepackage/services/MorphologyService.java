@@ -33,7 +33,7 @@ public class MorphologyService {
         String[] textBits = processText(text);
         StringBuilder builder = new StringBuilder();
         for (String bit : textBits) {
-            builder.append(bit);
+            builder.append(bit).append(" ");
         }
         return builder.toString();
     }
@@ -42,12 +42,13 @@ public class MorphologyService {
                 .replaceAll("ё", "е").replaceAll(regex, " ").split(" ");
         StringBuilder buffer = new StringBuilder();
         for (String word : words) {
+            word = word.trim();
               boolean rightWordForm = word.length() > 2;
           if (rightWordForm) {
-              buffer.append(word + " ");
+              buffer.append(morphology.getNormalForms(word).get(0) + "-");
           }
         }
-        String[] result = buffer.toString().split(" ");
+        String[] result = buffer.toString().split("-");
         return result;
         //for making text morphology-able
         }
@@ -67,6 +68,13 @@ public class MorphologyService {
         }
         System.out.println(lemmas.size());
         return lemmas;
+    }
+
+    public static void main(String[] args) {
+        String site = "https://www.playback.ru";
+        String html = new ConnectionService().getContent(site);
+        String text = new MorphologyService().processWholeText(html);
+        System.out.println(text);
     }
 }
 

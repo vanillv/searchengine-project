@@ -84,23 +84,25 @@ public class SearchService {
         List<String> snippets = new ArrayList<>();
         List<Element> elements = new ArrayList<>();
         for (String query : queryWords) {
-            System.out.println(query);
-            String[] queryLetters = query.split("", 2);
-            String queryFirstLetterToUpCase = queryLetters[0].toUpperCase(Locale.ROOT) + queryLetters[1];
-            elements.addAll(Jsoup.parse(html).getElementsContainingOwnText(query));
-            elements.addAll(Jsoup.parse(html).getElementsContainingOwnText(queryFirstLetterToUpCase));
+            //System.out.println(query);
+            elements.addAll(Jsoup.parse(html).getElementsContainingText(query));
+            elements.addAll(Jsoup.parse(html).getElementsMatchingText(query));
+            if (elements.isEmpty()) {
+                List<Element> elementsList = Jsoup.parse(html).getAllElements();
+                for (Element el : elementsList) {
+                    if (morphologyService.processWholeText(el.text()).contains(query)) {
+                        elements.add(el);
+                    };
+                }
+            }
             System.out.println(elements.size());
         }
- //     for (String query : queryWords) {
- //         String[] queryLetters = query.split("", 2);
- //         String queryFirstLetterToUpCase = queryLetters[0].toUpperCase(Locale.ROOT) + queryLetters[1];
- //         elements.removeIf(element1 -> !morphologyService.processWholeText(element1.text()).contains(query) &&
- //                 !morphologyService.processWholeText(element1.text()).contains(queryFirstLetterToUpCase));
- //         System.out.println(elements.size());
- //     }
+      for (String query : queryWords) {
+          elements.removeIf(element1 -> !morphologyService.processWholeText(element1.text()).contains(query));
+          System.out.println(elements.size());
+      }
         for (Element element : elements) {
             String text = element.text();
-            System.out.println(text);
             String[] words = text.split(" ");
             StringBuffer buffer = new StringBuffer();
             for (String word : words) {
