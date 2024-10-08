@@ -1,3 +1,5 @@
+server:
+  port: 8090
 config:
   threadsForSites: 3
   threadsForPages: 3

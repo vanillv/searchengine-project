@@ -1,7 +1,7 @@
 HELP.md
 ../target/
 !.mvn/wrapper/maven-wrapper.jar
-application-mysql.yaml
+src/main/resources/application-mysql.yaml
 !**/src/main/**/target/
 !**/src/test/**/target/
 

@@ -20,29 +20,6 @@
         <relativePath/>
     </parent>
 
-    <repositories>
-        <repository>
-            <id>skillbox-gitlab</id>
-            <url>https://gitlab.skillbox.ru/api/v4/projects/263574/packages/maven</url>
-        </repository>
-            <repository>
-                <id>github</id>
-                <name>GitHub Apache Maven Packages - Russian Morphology</name>
-                <url>https://maven.pkg.github.com/skillbox-java/russianmorphology</url>
-            </repository>
-    </repositories>
-
-    <distributionManagement>
-        <repository>
-            <id>skillbox-gitlab</id>
-            <url>https://gitlab.skillbox.ru/api/v4/projects/263574/packages/maven</url>
-        </repository>
-
-        <snapshotRepository>
-            <id>skillbox-gitlab</id>
-            <url>https://gitlab.skillbox.ru/api/v4/projects/263574/packages/maven</url>
-        </snapshotRepository>
-    </distributionManagement>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -62,7 +39,7 @@
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.33</version>
+            <version>8.0.32</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
