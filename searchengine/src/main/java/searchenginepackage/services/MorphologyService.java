@@ -70,12 +70,7 @@ public class MorphologyService {
         return lemmas;
     }
 
-    public static void main(String[] args) {
-        String site = "https://www.playback.ru";
-        String html = new ConnectionService().getContent(site);
-        String text = new MorphologyService().processWholeText(html);
-        System.out.println(text);
-    }
+
 }
 
 

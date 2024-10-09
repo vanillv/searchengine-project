@@ -9,10 +9,8 @@ import searchenginepackage.model.*;
 import searchenginepackage.repositories.*;
 import searchenginepackage.responses.Response;
 
-import javax.persistence.EntityManager;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ForkJoinPool;
 
 @AutoConfiguration
 @RequiredArgsConstructor
@@ -35,10 +33,10 @@ public class IndexService {
         return this;
     }
     public void deleteSiteInfo(String urlToFind) {
-        if (siteRepo.findByUrl(urlToFind) != null) {
-            SiteEntity site = siteRepo.getReferenceById(siteRepo.findByUrl(urlToFind));
+        if (siteRepo.findIdByUrl(urlToFind) != null) {
+            SiteEntity site = siteRepo.getReferenceById(siteRepo.findIdByUrl(urlToFind));
             siteRepo.delete(site);
-            pageRepo.deleteAll(pageRepo.findAllBySite(site.getId()));
+            pageRepo.deleteAll(pageRepo.findAllPageBySiteId(site.getId()));
             System.out.println("Сайт удален");
         }
     }
@@ -74,8 +72,8 @@ public class IndexService {
                 String content = connectionService.getContent(path);
                 Integer siteId;
                 SiteEntity site;
-                if (siteRepo.existsById(siteRepo.findByUrl(siteAndPath[0]))) {
-                    siteId = siteRepo.findByUrl(siteAndPath[0]);
+                if (siteRepo.existsById(siteRepo.findIdByUrl(siteAndPath[0]))) {
+                    siteId = siteRepo.findIdByUrl(siteAndPath[0]);
                     site = siteRepo.getReferenceById(siteId);
                     site.setStatus(IndexStatus.INDEXING);
                 } else {
@@ -109,8 +107,8 @@ public class IndexService {
         for (String lemma : lemmaMap.keySet()) {
             LemmaEntity lemmaEntity;
             Integer indexRank = lemmaMap.get(lemma);
-            if (lemmaRepo.existsById(lemmaRepo.findByLemmaAndSiteId(lemma, siteId))) {
-                lemmaEntity = lemmaRepo.getReferenceById(lemmaRepo.findByLemmaAndSiteId(lemma, siteId));
+            if (lemmaRepo.existsById(lemmaRepo.findIdByLemmaAndSiteId(lemma, siteId))) {
+                lemmaEntity = lemmaRepo.getReferenceById(lemmaRepo.findIdByLemmaAndSiteId(lemma, siteId));
                 lemmaEntity.setFrequency(lemmaEntity.getFrequency() + lemmaMap.get(lemma));
             } else {
                 lemmaEntity = new LemmaEntity(lemma, siteId, 1);
@@ -144,7 +142,7 @@ public class IndexService {
                      public void run() {
                         for (String site : siteListPart) {
                             boolean indexed = indexSite(site) && !stopIndexing;
-                            SiteEntity entity = siteRepo.getReferenceById(siteRepo.findByUrl(site));
+                            SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
                             if (indexed) {
                                 entity.setStatus(IndexStatus.INDEXED);
                             } else {

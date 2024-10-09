@@ -31,7 +31,7 @@ public class SearchService {
         try {
             List<QueryResponse> responses;
             if(!site.isEmpty()) {
-                SiteEntity entity = siteRepo.getReferenceById(siteRepo.findByUrl(site));
+                SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
                 responses = searchSite(query, entity);
                 if (!responses.isEmpty()) {
                     queryResult.getData().addAll(searchSite(query, entity));
@@ -61,7 +61,7 @@ public class SearchService {
         List<String> queryWords = morphologyService.decomposeTextToLemmasWithRank(query).keySet().stream().toList();
         List<LemmaEntity> queryLemmas = new ArrayList<>();
           for (String word : queryWords) {
-            LemmaEntity lemma = lemmaRepo.getReferenceById(lemmaRepo.findByLemmaAndSiteId(word, siteId));
+            LemmaEntity lemma = lemmaRepo.getReferenceById(lemmaRepo.findIdByLemmaAndSiteId(word, siteId));
              if (lemma.getFrequency() < lemmaRepo.count() / 2) { //2 is used for percentage example
                 queryLemmas.add(lemma);
              }
@@ -69,7 +69,7 @@ public class SearchService {
         queryLemmas.sort(Comparator.comparing(LemmaEntity::getFrequency).reversed());
         LemmaEntity startingLemma = queryLemmas.get(0);
 
-        List<PageEntity> pageList = pageRepo.getByListOfIds(indexRepo.findAllPagesByLemmaId(startingLemma.getSiteId()));
+        List<PageEntity> pageList = pageRepo.findAllPageByListOfIds(indexRepo.findAllPageIdByLemmaId(startingLemma.getSiteId()));
         for (LemmaEntity queryLemma : queryLemmas) {
             pageList.removeIf(page -> !indexRepo.
                     findAllLemmaIdByPageId(page.getId()).contains(queryLemma.getId()));
@@ -118,16 +118,7 @@ public class SearchService {
         }
             return snippets;
         }
-    public static void main(String[] args) {
-        String query = "Чехлы для смартфона";
-        SearchService service = new SearchService();
-        String html = service.connectionService.getContent("https://www.playback.ru");
-        List<String> queryWords = service.morphologyService.decomposeTextToLemmasWithRank(query).keySet().stream().toList();
-        List<String> snippets = service.getSnippets(queryWords, html);
-        for (String snippet : snippets) {
-            System.out.println(snippet);
-        }
-    }
+
 }
 
 
