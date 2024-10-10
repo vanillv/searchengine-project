@@ -2,6 +2,7 @@ package searchenginepackage.services;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchenginepackage.model.*;
 import searchenginepackage.repositories.IndexRepository;
@@ -19,13 +20,13 @@ public class SearchService {
     private IndexRepository indexRepo;
     private MorphologyService morphologyService = new MorphologyService();
     private ConnectionService connectionService = new ConnectionService();
-//    @Autowired
-//    private SearchService init(PageRepository pageRepository, SiteRepository siteRepository,
-//                              LemmaRepository lemmaRepository, IndexRepository indexRepository) {
-//        pageRepo = pageRepository; siteRepo = siteRepository; lemmaRepo = lemmaRepository;
-//        indexRepo = indexRepository;
-//        return this;
-//    }
+    @Autowired
+    private SearchService init(PageRepository pageRepository, SiteRepository siteRepository,
+                              LemmaRepository lemmaRepository, IndexRepository indexRepository) {
+        pageRepo = pageRepository; siteRepo = siteRepository; lemmaRepo = lemmaRepository;
+        indexRepo = indexRepository;
+        return this;
+    }
     public QueryResult searchAllSites(String query, String site, int offset, int limit) {
         QueryResult queryResult = new QueryResult();
         try {

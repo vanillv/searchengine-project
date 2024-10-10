@@ -1,9 +1,7 @@
 package searchenginepackage.services;
 
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import searchenginepackage.dto.statistics.DetailedStatisticsItem;
 import searchenginepackage.dto.statistics.StatisticsData;
@@ -15,18 +13,17 @@ import searchenginepackage.repositories.PageRepository;
 import searchenginepackage.repositories.SiteRepository;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
 @Service
 public class StatisticsServiceImpl implements StatisticsService {
     private final Random random = new Random();
-    //@Autowired
+    @Autowired
     private PageRepository pageRepo;
-    //@Autowired
+    @Autowired
     private LemmaRepository lemmaRepo;
-    //@Autowired
+    @Autowired
     private SiteRepository siteRepo;
 
     @Override
