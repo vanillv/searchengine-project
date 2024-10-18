@@ -1,12 +1,8 @@
-package searchenginepackage.model;
+package searchenginepackage.entities;
 
 import lombok.Data;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import org.thymeleaf.spring6.processor.SpringValueTagProcessor;
 
 import javax.persistence.*;
-import javax.persistence.criteria.CriteriaBuilder;
 import java.util.Objects;
 @Entity
 @Table(name = "page")

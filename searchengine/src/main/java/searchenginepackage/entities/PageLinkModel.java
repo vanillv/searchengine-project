@@ -1,4 +1,4 @@
-package searchenginepackage.model;
+package searchenginepackage.entities;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;

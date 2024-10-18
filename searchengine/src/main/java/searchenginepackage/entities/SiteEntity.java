@@ -1,4 +1,4 @@
-package searchenginepackage.model;
+package searchenginepackage.entities;
 
 import lombok.Data;
 import javax.persistence.*;

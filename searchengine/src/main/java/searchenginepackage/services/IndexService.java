@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.stereotype.Service;
 import searchenginepackage.config.AppConfig;
-import searchenginepackage.model.*;
+import searchenginepackage.entities.*;
 import searchenginepackage.repositories.*;
 import searchenginepackage.responses.Response;
 

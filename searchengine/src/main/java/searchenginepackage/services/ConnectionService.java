@@ -6,7 +6,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 import searchenginepackage.config.AppConfig;
-import searchenginepackage.model.PageLinkModel;
+import searchenginepackage.entities.PageLinkModel;
 
 import java.io.IOException;
 import java.net.URL;

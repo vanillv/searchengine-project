@@ -3,7 +3,7 @@ package searchenginepackage.repositories;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-import searchenginepackage.model.IndexEntity;
+import searchenginepackage.entities.IndexEntity;
 
 import java.util.List;
 

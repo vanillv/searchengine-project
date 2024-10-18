@@ -3,8 +3,9 @@ package searchenginepackage.services;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import searchenginepackage.model.*;
+import searchenginepackage.entities.*;
 import searchenginepackage.repositories.IndexRepository;
 import searchenginepackage.repositories.LemmaRepository;
 import searchenginepackage.repositories.PageRepository;
@@ -30,20 +31,18 @@ public class SearchService {
     public QueryResult searchAllSites(String query, String site, int offset, int limit) {
         QueryResult queryResult = new QueryResult();
         try {
-            List<QueryResponse> responses;
-            if(!site.isEmpty()) {
+            List<QueryResponse> responses = new ArrayList<>();
+            if(!site.trim().isEmpty()) {
                 SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
-                responses = searchSite(query, entity);
-                if (!responses.isEmpty()) {
-                    queryResult.getData().addAll(searchSite(query, entity));
-                }
+                responses.addAll(searchSite(query, entity, offset));
             } else {
                 for (SiteEntity entity : siteRepo.findAll()) {
-                    responses = searchSite(query, entity);
-                    if (!responses.isEmpty()) {
-                        queryResult.getData().addAll(responses);
-                    }
+                    responses.addAll(searchSite(query, entity, offset));
                 }
+            }
+            if (!responses.isEmpty()) {
+                responses.sort(Comparator.comparing(QueryResponse::getRelevance));
+                queryResult.setData(responses.subList(0, limit));
             }
             queryResult.setCount(queryResult.getData().size());
             queryResult.setResult(true);
@@ -55,7 +54,7 @@ public class SearchService {
 
 
     }
-    public List<QueryResponse> searchSite(String query, SiteEntity site) {
+    public List<QueryResponse> searchSite(String query, SiteEntity site, int offset) {
         List<QueryResponse> responses = new ArrayList<>();
         Integer siteId = site.getId();
         //List<PageEntity> pageList = pageRepo.findAllBySite(siteRepo.findByUrl(site));
@@ -78,6 +77,7 @@ public class SearchService {
         for (PageEntity entity : pageList) {
             String html = entity.getContent();
             List<String> snippets = getSnippets(queryWords, html);
+
         }
         return responses;
     };
@@ -118,8 +118,7 @@ public class SearchService {
             snippets.add(buffer.toString());
         }
             return snippets;
-        }
-
+    }
 }
 
 

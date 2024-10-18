@@ -1,9 +1,6 @@
-package searchenginepackage.model;
+package searchenginepackage.entities;
 
-import jdk.jfr.Frequency;
 import lombok.Data;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.*;
 @Entity

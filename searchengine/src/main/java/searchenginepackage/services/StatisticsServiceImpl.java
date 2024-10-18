@@ -7,7 +7,7 @@ import searchenginepackage.dto.statistics.DetailedStatisticsItem;
 import searchenginepackage.dto.statistics.StatisticsData;
 import searchenginepackage.dto.statistics.StatisticsResponse;
 import searchenginepackage.dto.statistics.TotalStatistics;
-import searchenginepackage.model.SiteEntity;
+import searchenginepackage.entities.SiteEntity;
 import searchenginepackage.repositories.LemmaRepository;
 import searchenginepackage.repositories.PageRepository;
 import searchenginepackage.repositories.SiteRepository;
