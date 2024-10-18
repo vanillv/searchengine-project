@@ -1,4 +1,4 @@
-package searchenginepackage.entities;
+package searchenginepackage.model;
 
 
 public enum IndexStatus {

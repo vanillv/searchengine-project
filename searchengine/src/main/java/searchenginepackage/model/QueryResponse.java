@@ -1,4 +1,4 @@
-package searchenginepackage.entities;
+package searchenginepackage.model;
 
 import lombok.Data;
 

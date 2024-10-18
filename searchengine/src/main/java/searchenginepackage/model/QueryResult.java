@@ -1,6 +1,7 @@
-package searchenginepackage.entities;
+package searchenginepackage.model;
 
 import lombok.Data;
+
 import java.util.ArrayList;
 import java.util.List;
 @Data

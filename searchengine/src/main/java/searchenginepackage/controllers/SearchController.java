@@ -2,7 +2,7 @@ package searchenginepackage.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import searchenginepackage.entities.QueryResult;
+import searchenginepackage.model.QueryResult;
 import searchenginepackage.services.SearchService;
 @RestController
 public class SearchController {

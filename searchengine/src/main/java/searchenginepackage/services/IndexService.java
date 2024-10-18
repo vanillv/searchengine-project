@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.stereotype.Service;
 import searchenginepackage.config.AppConfig;
 import searchenginepackage.entities.*;
+import searchenginepackage.model.IndexStatus;
 import searchenginepackage.repositories.*;
 import searchenginepackage.responses.Response;
 
