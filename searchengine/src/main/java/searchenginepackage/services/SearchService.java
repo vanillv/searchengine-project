@@ -70,7 +70,7 @@ public class SearchService {
         queryLemmas.sort(Comparator.comparing(LemmaEntity::getFrequency).reversed());
         LemmaEntity startingLemma = queryLemmas.get(0);
 
-        List<PageEntity> pageList = pageRepo.findAllPageByListOfIds(indexRepo.findAllPageIdByLemmaId(startingLemma.getSiteId()));
+        List<PageEntity> pageList = pageRepo.findAllBySiteId(indexRepo.findAllPageIdByLemmaId(startingLemma.getSiteId()));
         for (LemmaEntity queryLemma : queryLemmas) {
             pageList.removeIf(page -> !indexRepo.
                     findAllLemmaIdByPageId(page.getId()).contains(queryLemma.getId()));

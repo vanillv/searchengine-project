@@ -3,7 +3,7 @@ package searchenginepackage.entities;
 import lombok.Data;
 import searchenginepackage.model.IndexStatus;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 @Entity
 @Data

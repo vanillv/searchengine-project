@@ -2,7 +2,7 @@ package searchenginepackage.entities;
 
 import lombok.Data;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.Objects;
 @Entity
 @Table(name = "page")

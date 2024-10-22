@@ -37,7 +37,7 @@ public class IndexService {
         if (siteRepo.findIdByUrl(urlToFind) != null) {
             SiteEntity site = siteRepo.getReferenceById(siteRepo.findIdByUrl(urlToFind));
             siteRepo.delete(site);
-            pageRepo.deleteAll(pageRepo.findAllPageBySiteId(site.getId()));
+            pageRepo.deleteAll(pageRepo.findAllBySiteId(site.getId()));
             System.out.println("Сайт удален");
         }
     }
