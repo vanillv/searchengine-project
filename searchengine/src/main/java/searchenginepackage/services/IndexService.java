@@ -37,7 +37,7 @@ public class IndexService {
         if (siteRepo.findIdByUrl(urlToFind) != null) {
             SiteEntity site = siteRepo.getReferenceById(siteRepo.findIdByUrl(urlToFind));
             siteRepo.delete(site);
-            pageRepo.deleteAll(pageRepo.findAllBySiteId(site.getId()));
+            pageRepo.deleteAll(pageRepo.findBySiteId(Long.valueOf(site.getId())));
             System.out.println("Сайт удален");
         }
     }
@@ -48,17 +48,17 @@ public class IndexService {
             siteRepo.save(site);
             String[] map = connectionService.getMap(path).split("\n", AppConfig.appConfig.getMaxPagesPerSite());
             int siteId = site.getId();
-               for (String pageAdress : map) {
-                    String content = connectionService.getContent(pageAdress);
-                    PageEntity page = new PageEntity(siteId, path.split("/", 1)[1],
-                            content, connectionService.getHttpCode(path));
-                    pageRepo.save(page);
-                    saveLemmas(page);
-               }
-               site.setStatus(IndexStatus.INDEXED);
-               siteRepo.saveAndFlush(site);
-               pageRepo.flush();
-               return true;
+            for (String pageAdress : map) {
+                String content = connectionService.getContent(pageAdress);
+                PageEntity page = new PageEntity(siteId, path.split("/", 1)[1],
+                        content, connectionService.getHttpCode(path));
+                pageRepo.save(page);
+                saveLemmas(page);
+            }
+            site.setStatus(IndexStatus.INDEXED);
+            siteRepo.saveAndFlush(site);
+            pageRepo.flush();
+            return true;
         } catch (Exception e) {
             lastError = e.getMessage();
             System.out.println("FAILED WITH EXCEPTION");
@@ -103,7 +103,7 @@ public class IndexService {
     }
     private void saveLemmas(PageEntity page) {
         String content = page.getContent();
-        Integer siteId = page.getSite_id();
+        Integer siteId = page.getSiteId();
         Map<String, Integer> lemmaMap = morphologyService.decomposeTextToLemmasWithRank(content);
         for (String lemma : lemmaMap.keySet()) {
             LemmaEntity lemmaEntity;
@@ -125,48 +125,48 @@ public class IndexService {
     public Response FullIndexing() {
         if (indexingIsAvailable) {
             AppConfig.appConfig.setIndexingAvailable(false);
-         int threadsForSites = AppConfig.appConfig.getThreadsForSites();
-         List<String> siteList = AppConfig.appConfig.getSites();
-          try {
-              Thread[] threadArray = new Thread[threadsForSites];
-            for (int i = 0; i < threadsForSites; i++){
-                int portion = siteList.size() / threadsForSites;
-                int portionStart = 0;
-                int portionEnd = siteList.size() / threadsForSites;
-                if (i != 0) {
-                    portionStart += portion;
-                    portionEnd += portion;
-                }
-                List<String> siteListPart = siteList.subList(portionStart, portionEnd);
-                  Thread t = new Thread(new Runnable() {
-                     @Override
-                     public void run() {
-                        for (String site : siteListPart) {
-                            boolean indexed = indexSite(site) && !stopIndexing;
-                            SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
-                            if (indexed) {
-                                entity.setStatus(IndexStatus.INDEXED);
-                            } else {
-                                entity.setStatus(IndexStatus.FAILED);
-                                entity.setLastError(lastError);
-                            }
-                            siteRepo.save(entity);
-                        }
-                     }
-                  });
-                 threadArray[i] = t;
-                threadArray[i].run();
-                if (stopIndexing) {
-                    for (Thread thr : threadArray) {
-                        thr.interrupt();
+            int threadsForSites = AppConfig.appConfig.getThreadsForSites();
+            List<String> siteList = AppConfig.appConfig.getSites();
+            try {
+                Thread[] threadArray = new Thread[threadsForSites];
+                for (int i = 0; i < threadsForSites; i++){
+                    int portion = siteList.size() / threadsForSites;
+                    int portionStart = 0;
+                    int portionEnd = siteList.size() / threadsForSites;
+                    if (i != 0) {
+                        portionStart += portion;
+                        portionEnd += portion;
                     }
-                    stopIndexing = false;
-                    break;
+                    List<String> siteListPart = siteList.subList(portionStart, portionEnd);
+                    Thread t = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            for (String site : siteListPart) {
+                                boolean indexed = indexSite(site) && !stopIndexing;
+                                SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
+                                if (indexed) {
+                                    entity.setStatus(IndexStatus.INDEXED);
+                                } else {
+                                    entity.setStatus(IndexStatus.FAILED);
+                                    entity.setLastError(lastError);
+                                }
+                                siteRepo.save(entity);
+                            }
+                        }
+                    });
+                    threadArray[i] = t;
+                    threadArray[i].run();
+                    if (stopIndexing) {
+                        for (Thread thr : threadArray) {
+                            thr.interrupt();
+                        }
+                        stopIndexing = false;
+                        break;
+                    }
                 }
+            } catch (Exception e) {
+                return new Response("Ошибка: " + e);
             }
-         } catch (Exception e) {
-            return new Response("Ошибка: " + e);
-          }
         }
         AppConfig.appConfig.setInitialised(true);
         AppConfig.appConfig.setIndexingAvailable(true);

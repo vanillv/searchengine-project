@@ -12,7 +12,6 @@ public class MorphologyService {
 
     private static final String[] particlesNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ"};
     private static LuceneMorphology morphology;
-
     static {
         try {
             morphology = new RussianLuceneMorphology();
@@ -24,6 +23,19 @@ public class MorphologyService {
         try {
             String processedWord = word.toLowerCase(Locale.ROOT)
                     .replaceAll("ё", "е").replaceAll(regex, "");
+            List<String> forms;
+            if (!morphology.checkString(processedWord)) {
+                return "";
+            } else {
+                forms = morphology.getMorphInfo(processedWord);
+                for (String form : forms) {
+                    for (String particle : particlesNames) {
+                        if (form.matches(particle)) {
+                            return "";
+                        }
+                    }
+                }
+            }
             return morphology.getNormalForms(processedWord).get(0);
         } catch (ArrayIndexOutOfBoundsException e) {
             return "";
@@ -42,11 +54,20 @@ public class MorphologyService {
                 .replaceAll("ё", "е").replaceAll(regex, " ").split(" ");
         StringBuilder buffer = new StringBuilder();
         for (String word : words) {
-            word = word.trim();
-              boolean rightWordForm = word.length() > 2;
-          if (rightWordForm) {
-              buffer.append(morphology.getNormalForms(word).get(0) + "-");
-          }
+            boolean rightWordForm = false;
+            String processedWord = word;
+            if (morphology.checkString(processedWord)) {
+                for (String form : morphology.getMorphInfo(processedWord)) {
+                    for (String particle : particlesNames) {
+                        if (form.matches(particle)) {
+                            rightWordForm = true;
+                        }
+                    }
+                }
+            if (rightWordForm) {
+                buffer.append(morphology.getNormalForms(word).get(0) + "-");
+               }
+            }
         }
         String[] result = buffer.toString().split("-");
         return result;
@@ -69,8 +90,6 @@ public class MorphologyService {
         System.out.println(lemmas.size());
         return lemmas;
     }
-
-
 }
 
 

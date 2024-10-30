@@ -6,7 +6,7 @@ import searchenginepackage.model.QueryResult;
 import searchenginepackage.services.SearchService;
 @RestController
 public class SearchController {
-    private SearchService searchService = new SearchService();
+    private SearchService searchService;
     @ResponseBody
     @GetMapping("api/search")
     public ResponseEntity<QueryResult> search(@RequestParam("query")String search) {
@@ -27,4 +27,6 @@ public class SearchController {
         }
         return ResponseEntity.ok(searchService.searchAllSites(query, site, limit, offset));
     }
+    //@RequestParam("query")String query, @RequestParam(value = "site", required = false) String site,
+    //                                          @RequestParam("offset") Integer offset, @RequestParam("limit") Integer limit
 }

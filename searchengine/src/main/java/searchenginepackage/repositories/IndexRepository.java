@@ -9,9 +9,9 @@ import java.util.List;
 
 @Repository
 public interface IndexRepository extends JpaRepository<IndexEntity, Integer > {
-    //@Query("SELECT lemmaId FROM index WHERE pageId = page_Id")
+    @Query(value = "SELECT i.lemmaId FROM `page_index` i WHERE i.pageId = :page_Id", nativeQuery = true)
     List<Integer> findAllLemmaIdByPageId(Integer page_Id);
     List<Integer> findAllPageIdByLemmaId(Integer lemmaId);
-    //Query(value = "SELECT index WHERE pageId = page_Id, lemmaId = lemma_Id")
+    @Query(value = "SELECT * FROM `page_index` WHERE pageId = :page_Id AND lemmaId = :lemma_Id", nativeQuery = true)
     IndexEntity findByPageIdAndLemmaId(Integer page_Id, Integer lemma_Id);
 }

@@ -1,8 +1,6 @@
 package searchenginepackage.entities;
-
 import lombok.Data;
 import searchenginepackage.model.IndexStatus;
-
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 @Entity
@@ -14,7 +12,7 @@ public class SiteEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
+    @Column(name = "status", nullable = false)
     private IndexStatus status;
     @Column(name = "status_time", nullable = false, columnDefinition = "DATETIME")
     private LocalDateTime statusTime;
@@ -24,11 +22,11 @@ public class SiteEntity {
     private String url;
     @Column(name = "name", nullable = false)
     private String name;
-
     public SiteEntity(String url, String name, IndexStatus status) {
         this.url = url;
         this.name = name;
         this.status = status;
-        statusTime = LocalDateTime.now();
+        this.statusTime = LocalDateTime.now();
     }
 }
+

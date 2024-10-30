@@ -9,6 +9,6 @@ import java.util.List;
 
 @Repository
 public interface LemmaRepository extends JpaRepository<LemmaEntity, Integer> {
-    @Query(value = "SELECT id FROM lemma WHERE lemma = lemmaToSearch, siteId = siteIdToSearch")
+    @Query(value = "SELECT l.id FROM lemma l WHERE l.lemma = :lemmaToSearch AND l.site_id = :siteIdToSearch", nativeQuery = true)
     Integer findIdByLemmaAndSiteId(String lemmaToSearch, Integer siteIdToSearch);
 }

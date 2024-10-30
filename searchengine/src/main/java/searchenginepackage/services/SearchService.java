@@ -13,113 +13,139 @@ import searchenginepackage.repositories.PageRepository;
 import searchenginepackage.repositories.SiteRepository;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class SearchService {
-    private PageRepository pageRepo;
-    private SiteRepository siteRepo;
-    private LemmaRepository lemmaRepo;
-    private IndexRepository indexRepo;
-    private MorphologyService morphologyService = new MorphologyService();
-    private ConnectionService connectionService = new ConnectionService();
+
+    private final PageRepository pageRepo;
+    private final SiteRepository siteRepo;
+    private final LemmaRepository lemmaRepo;
+    private final IndexRepository indexRepo;
+    private final MorphologyService morphologyService;
+    private final ConnectionService connectionService;
+
     @Autowired
-    private SearchService init(PageRepository pageRepository, SiteRepository siteRepository,
-                              LemmaRepository lemmaRepository, IndexRepository indexRepository) {
-        pageRepo = pageRepository; siteRepo = siteRepository; lemmaRepo = lemmaRepository;
-        indexRepo = indexRepository;
-        return this;
+    public SearchService(PageRepository pageRepo, SiteRepository siteRepo,
+                         LemmaRepository lemmaRepo, IndexRepository indexRepo,
+                         MorphologyService morphologyService, ConnectionService connectionService) {
+        this.pageRepo = pageRepo;
+        this.siteRepo = siteRepo;
+        this.lemmaRepo = lemmaRepo;
+        this.indexRepo = indexRepo;
+        this.morphologyService = morphologyService;
+        this.connectionService = connectionService;
     }
+
     public QueryResult searchAllSites(String query, String site, int offset, int limit) {
         QueryResult queryResult = new QueryResult();
+        List<QueryResponse> responses = new ArrayList<>();
+
         try {
-            List<QueryResponse> responses = new ArrayList<>();
-            if(!site.trim().isEmpty()) {
+            if (!site.trim().isEmpty()) {
                 SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
-                responses.addAll(searchSite(query, entity, offset));
+                responses.addAll(searchSite(query, entity, limit));
             } else {
                 for (SiteEntity entity : siteRepo.findAll()) {
-                    responses.addAll(searchSite(query, entity, offset));
+                    responses.addAll(searchSite(query, entity, limit));
                 }
             }
             if (!responses.isEmpty()) {
-                responses.sort(Comparator.comparing(QueryResponse::getRelevance));
-                queryResult.setData(responses.subList(0, limit));
+                responses.sort(Comparator.comparing(QueryResponse::getRelevance).reversed());
+                queryResult.setData(responses.subList(Math.min(offset, responses.size()), Math.min(offset + limit, responses.size())));
             }
             queryResult.setCount(queryResult.getData().size());
             queryResult.setResult(true);
-            return queryResult;
-        }  catch (Exception e) {
+        } catch (Exception e) {
             queryResult.setResult(false);
-            return queryResult;
+            // Log the error for debugging purposes
+            e.printStackTrace();
         }
-
-
+        return queryResult;
     }
-    public List<QueryResponse> searchSite(String query, SiteEntity site, int offset) {
+
+    private List<QueryResponse> searchSite(String query, SiteEntity site, int limit) {
         List<QueryResponse> responses = new ArrayList<>();
         Integer siteId = site.getId();
-        //List<PageEntity> pageList = pageRepo.findAllBySite(siteRepo.findByUrl(site));
-        List<String> queryWords = morphologyService.decomposeTextToLemmasWithRank(query).keySet().stream().toList();
-        List<LemmaEntity> queryLemmas = new ArrayList<>();
-          for (String word : queryWords) {
-            LemmaEntity lemma = lemmaRepo.getReferenceById(lemmaRepo.findIdByLemmaAndSiteId(word, siteId));
-             if (lemma.getFrequency() < lemmaRepo.count() / 2) { //2 is used for percentage example
-                queryLemmas.add(lemma);
-             }
-          }
-        queryLemmas.sort(Comparator.comparing(LemmaEntity::getFrequency).reversed());
-        LemmaEntity startingLemma = queryLemmas.get(0);
 
-        List<PageEntity> pageList = pageRepo.findAllBySiteId(indexRepo.findAllPageIdByLemmaId(startingLemma.getSiteId()));
-        for (LemmaEntity queryLemma : queryLemmas) {
-            pageList.removeIf(page -> !indexRepo.
-                    findAllLemmaIdByPageId(page.getId()).contains(queryLemma.getId()));
+        List<String> queryWords = new ArrayList<>(morphologyService.decomposeTextToLemmasWithRank(query).keySet());
+        List<LemmaEntity> queryLemmas = fetchRelevantLemmas(queryWords, siteId);
+
+        if (queryLemmas.isEmpty()) {
+            return responses;
         }
+
+        LemmaEntity startingLemma = queryLemmas.get(0);
+        List<PageEntity> pageList = fetchRelevantPages(startingLemma, queryLemmas);
+
         for (PageEntity entity : pageList) {
             String html = entity.getContent();
-            List<String> snippets = getSnippets(queryWords, html);
+            List<String> snippets = generateSnippets(queryWords, html, limit);
+            float relevance = calculateRelevance(entity, queryLemmas);
+            String title = connectionService.getTitle(entity.getContent());
 
+            for (String snippet : snippets) {
+                responses.add(new QueryResponse(site.getUrl(), entity.getPath(), title, snippet, relevance));
+            }
         }
         return responses;
-    };
-    public List<String> getSnippets(List<String> queryWords, String html) {
+    }
+
+    private List<LemmaEntity> fetchRelevantLemmas(List<String> queryWords, Integer siteId) {
+        return queryWords.stream()
+                .map(word -> lemmaRepo.getReferenceById(lemmaRepo.findIdByLemmaAndSiteId(word, siteId)))
+                .filter(lemma -> lemma.getFrequency() < lemmaRepo.count() / 2)
+                .sorted(Comparator.comparing(LemmaEntity::getFrequency).reversed())
+                .collect(Collectors.toList());
+    }
+
+    private List<PageEntity> fetchRelevantPages(LemmaEntity startingLemma, List<LemmaEntity> queryLemmas) {
+        List<PageEntity> pageList = pageRepo.findAllBySiteId(indexRepo.findAllPageIdByLemmaId(startingLemma.getSiteId()));
+        return pageList.stream()
+                .filter(page -> queryLemmas.stream()
+                        .allMatch(queryLemma -> indexRepo.findAllLemmaIdByPageId(page.getId()).contains(queryLemma.getId())))
+                .collect(Collectors.toList());
+    }
+
+    private float calculateRelevance(PageEntity entity, List<LemmaEntity> queryLemmas) {
+        return queryLemmas.stream()
+                .map(lemma -> indexRepo.findByPageIdAndLemmaId(entity.getId(), lemma.getId()).getRank())
+                .reduce(0f, Float::sum);
+    }
+
+    private List<String> generateSnippets(List<String> queryWords, String html, int limit) {
+        List<Element> elements = extractElementsWithQueryWords(html, queryWords);
         List<String> snippets = new ArrayList<>();
-        List<Element> elements = new ArrayList<>();
-        for (String query : queryWords) {
-            //System.out.println(query);
-            elements.addAll(Jsoup.parse(html).getElementsContainingText(query));
-            elements.addAll(Jsoup.parse(html).getElementsMatchingText(query));
-            if (elements.isEmpty()) {
-                List<Element> elementsList = Jsoup.parse(html).getAllElements();
-                for (Element el : elementsList) {
-                    if (morphologyService.processWholeText(el.text()).contains(query)) {
-                        elements.add(el);
-                    };
-                }
-            }
-            System.out.println(elements.size());
-        }
-      for (String query : queryWords) {
-          elements.removeIf(element1 -> !morphologyService.processWholeText(element1.text()).contains(query));
-          System.out.println(elements.size());
-      }
+
         for (Element element : elements) {
             String text = element.text();
-            String[] words = text.split(" ");
-            StringBuffer buffer = new StringBuffer();
-            for (String word : words) {
-                    for (String query : queryWords) {
-                    boolean wordContainsQuery = morphologyService.processWord(word).matches(query);
-                       if (wordContainsQuery) {
-                          word = "<b>" + word + "<b>";
-                       };
-                    }
-              buffer.append(word + " ");
-            }
-            snippets.add(buffer.toString());
+            String highlightedText = highlightQueryWords(text, queryWords);
+            snippets.add(trimSnippet(highlightedText, limit));
         }
-            return snippets;
+        return snippets;
+    }
+
+    private List<Element> extractElementsWithQueryWords(String html, List<String> queryWords) {
+        return queryWords.stream()
+                .flatMap(query -> Jsoup.parse(html).getElementsContainingText(query).stream())
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private String highlightQueryWords(String text, List<String> queryWords) {
+        for (String query : queryWords) {
+            text = text.replaceAll("(?i)\\b" + query + "\\b", "<b>" + query + "</b>");
+        }
+        return text;
+    }
+
+    private String trimSnippet(String text, int limit) {
+        if (text.length() <= limit) {
+            return text;
+        }
+        return text.substring(0, limit).trim() + "...";
     }
 }
+
 
 

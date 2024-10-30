@@ -1,4 +1,6 @@
 package searchenginepackage.controllers;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchenginepackage.responses.Response;
@@ -19,7 +21,7 @@ public class ApiController {
     }
     @ResponseBody
     @PutMapping("/indexPage")
-    public ResponseEntity<Response> indexPage(@RequestParam String page) {
+    public ResponseEntity<Response> indexPage(@RequestParam(name = "url") String page) {
         return ResponseEntity.ok(indexService.indexPage(page));
     }
 }

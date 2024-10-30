@@ -4,7 +4,8 @@ import lombok.Data;
 
 import jakarta.persistence.*;
 
-@Table(name = "index")
+@Entity
+@Table(name = "page_index")
 @Data
 public class IndexEntity {
     @Id
@@ -13,12 +14,14 @@ public class IndexEntity {
     private Integer id;
     @Column(name = "page_id", nullable = false)
     private int pageId;
-    @Column(name = "lemma", nullable = false)
+    @Column(name = "lemma_id", nullable = false)
     private int lemmaId;
     @Column(name = "rank", nullable = false)
     private float rank;
-    public IndexEntity(Integer pageId, Integer lemmaId, float rank) {
+    public IndexEntity(int pageId, int lemmaId, float rank) {
         this.pageId = pageId;
         this.lemmaId = lemmaId;
+        this.rank = rank; // Ensure to assign rank as well
     }
 }
+

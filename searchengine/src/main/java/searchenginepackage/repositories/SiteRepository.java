@@ -7,6 +7,6 @@ import searchenginepackage.entities.SiteEntity;
 
 @Repository
 public interface SiteRepository extends JpaRepository<SiteEntity, Integer> {
-    @Query(value = "SELECT id FROM site WHERE url=urlToSearch")
+    @Query(value = "SELECT s.id FROM site s WHERE s.url = :urlToSearch", nativeQuery = true)
     Integer findIdByUrl(String urlToSearch);
 }
