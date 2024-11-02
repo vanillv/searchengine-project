@@ -1,17 +1,21 @@
 package searchenginepackage.services;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.stereotype.Service;
-import searchenginepackage.config.AppConfig;
 import searchenginepackage.entities.*;
 import searchenginepackage.model.IndexStatus;
 import searchenginepackage.repositories.*;
 import searchenginepackage.responses.Response;
-
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
+
+import static searchenginepackage.config.AppConfig.appConfig;
 
 @AutoConfiguration
 @RequiredArgsConstructor
@@ -23,9 +27,11 @@ public class IndexService {
     private IndexRepository indexRepo;
     private MorphologyService morphologyService = new MorphologyService();
     private ConnectionService connectionService = new ConnectionService();
-    boolean indexingIsAvailable = AppConfig.appConfig.isIndexingAvailable();
+    private int threadsForSites = appConfig.getThreadsForSites();
+    private ExecutorService executorService = Executors.newFixedThreadPool(threadsForSites);
+    private static final Logger log = LoggerFactory.getLogger(StatisticsServiceImpl.class);
     private String lastError;
-    private boolean stopIndexing = false;
+    private volatile boolean stopIndexing = false;
     @Autowired
     private IndexService init(PageRepository pageRepository, SiteRepository siteRepository,
                               LemmaRepository lemmaRepository, IndexRepository indexRepository) {
@@ -34,41 +40,43 @@ public class IndexService {
         return this;
     }
     public void deleteSiteInfo(String urlToFind) {
-        if (siteRepo.findIdByUrl(urlToFind) != null) {
-            SiteEntity site = siteRepo.getReferenceById(siteRepo.findIdByUrl(urlToFind));
-            siteRepo.delete(site);
-            pageRepo.deleteAll(pageRepo.findBySiteId(Long.valueOf(site.getId())));
-            System.out.println("Сайт удален");
-        }
+        try {
+            if (siteRepo.findIdByUrl(urlToFind) != null) {
+                SiteEntity site = siteRepo.getReferenceById(siteRepo.findIdByUrl(urlToFind));
+                siteRepo.delete(site);
+                pageRepo.deleteAll(pageRepo.findBySiteId(Long.valueOf(site.getId())));
+                System.out.println("Сайт удален");
+            }
+        } catch (NullPointerException nullPointer) {
+            log.info("NullPointerException during deletion of sites");
+        };
     }
     private boolean indexSite(String path) {
         try {
             deleteSiteInfo(path);
             SiteEntity site = new SiteEntity(path, connectionService.getFileName(), IndexStatus.INDEXING);
             siteRepo.save(site);
-            String[] map = connectionService.getMap(path).split("\n", AppConfig.appConfig.getMaxPagesPerSite());
+            log.info("added site: " + site.getUrl());
+            String[] map = connectionService.getMap(path).split("\n", appConfig.getMaxPagesPerSite());
             int siteId = site.getId();
             for (String pageAdress : map) {
+                log.info("indexing page: " + pageAdress);
                 String content = connectionService.getContent(pageAdress);
                 PageEntity page = new PageEntity(siteId, path.split("/", 1)[1],
                         content, connectionService.getHttpCode(path));
                 pageRepo.save(page);
                 saveLemmas(page);
             }
-            site.setStatus(IndexStatus.INDEXED);
-            siteRepo.saveAndFlush(site);
-            pageRepo.flush();
+            siteRepo.save(site);
             return true;
         } catch (Exception e) {
             lastError = e.getMessage();
-            System.out.println("FAILED WITH EXCEPTION");
+            log.info("Exception encountered: " + e.getMessage());
             return false;
         }
     }
     public Response indexPage(String path) {
         try {
-            if (indexingIsAvailable) {
-                AppConfig.appConfig.setIndexingAvailable(false);
                 String[] siteAndPath = path.split("/", 2);
                 String content = connectionService.getContent(path);
                 Integer siteId;
@@ -84,22 +92,18 @@ public class IndexService {
                 siteRepo.save(site);
                 PageEntity page = new PageEntity(siteId, siteAndPath[1],
                         content, connectionService.getHttpCode(path));
-                pageRepo.save(page);
+                pageRepo.saveAndFlush(page);
                 saveLemmas(page);
                 site.setStatus(IndexStatus.INDEXED);
-                siteRepo.save(site);
-                AppConfig.appConfig.setIndexingAvailable(true);
-                pageRepo.flush();
-                siteRepo.flush();
+                siteRepo.saveAndFlush(site);
                 return new Response();
-
-            } else {
-                lastError = "Indexing is not available";
-            }
-        } catch (Exception e) {
+          } catch (Exception e) {
             lastError = e.getMessage();
+            log.info("new exception: " + lastError);
+            System.out.println(1);
+            return new Response(lastError);
         }
-        return new Response(lastError);
+
     }
     private void saveLemmas(PageEntity page) {
         String content = page.getContent();
@@ -121,61 +125,74 @@ public class IndexService {
         indexRepo.flush();
         lemmaRepo.flush();
     }
-
-    public Response FullIndexing() {
-        if (indexingIsAvailable) {
-            AppConfig.appConfig.setIndexingAvailable(false);
-            int threadsForSites = AppConfig.appConfig.getThreadsForSites();
-            List<String> siteList = AppConfig.appConfig.getSites();
-            try {
-                Thread[] threadArray = new Thread[threadsForSites];
-                for (int i = 0; i < threadsForSites; i++){
-                    int portion = siteList.size() / threadsForSites;
-                    int portionStart = 0;
-                    int portionEnd = siteList.size() / threadsForSites;
-                    if (i != 0) {
-                        portionStart += portion;
-                        portionEnd += portion;
-                    }
-                    List<String> siteListPart = siteList.subList(portionStart, portionEnd);
-                    Thread t = new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            for (String site : siteListPart) {
-                                boolean indexed = indexSite(site) && !stopIndexing;
-                                SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
-                                if (indexed) {
-                                    entity.setStatus(IndexStatus.INDEXED);
-                                } else {
-                                    entity.setStatus(IndexStatus.FAILED);
-                                    entity.setLastError(lastError);
-                                }
-                                siteRepo.save(entity);
-                            }
-                        }
-                    });
-                    threadArray[i] = t;
-                    threadArray[i].run();
-                    if (stopIndexing) {
-                        for (Thread thr : threadArray) {
-                            thr.interrupt();
-                        }
-                        stopIndexing = false;
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                return new Response("Ошибка: " + e);
-            }
+    public synchronized Response fullIndexing() {
+        if (!appConfig.isIndexingAvailable()) {
+            return new Response("Indexing is already in progress.");
         }
-        AppConfig.appConfig.setInitialised(true);
-        AppConfig.appConfig.setIndexingAvailable(true);
-        return new Response();
+        appConfig.setIndexingAvailable(false);
+        stopIndexing = false;
+        ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getThreadsForSites());
+        List<String> siteList = appConfig.getSites();
+        try {
+            int portionSize = siteList.size() / appConfig.getThreadsForSites();
+            List<Future<Void>> futures = new ArrayList<>();
+            for (int i = 0; i < appConfig.getThreadsForSites(); i++) {
+                int start = i * portionSize;
+                int end = (i == appConfig.getThreadsForSites() - 1) ? siteList.size() : (i + 1) * portionSize;
+                List<String> sitePortion = siteList.subList(start, end);
+                Callable<Void> task = () -> {
+                    log.info("task started");
+                    for (String site : sitePortion) {
+                        if (stopIndexing) {
+                            log.info("Indexing stopped manually.");
+                            return null;
+                        }
+                        indexSite(site);
+                        log.info("Started indexing site: " + site);
+                    }
+                    log.info("task ended");
+                    return null;
+                };
+                futures.add(executorService.submit(task));
+                log.info("added task: " + i);
+            }
+            for (Future<Void> future : futures) {
+                try {
+                    future.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("Indexing interrupted.");
+                    return new Response("Indexing was interrupted.");
+                } catch (ExecutionException e) {
+                    log.error("Error during indexing: {}", e.getCause().getMessage());
+                    return new Response("Indexing error: " + e.getCause().getMessage());
+                }
+            }
+
+        } finally {
+            executorService.shutdown();
+            try {
+                if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow();
+                    log.info("Forcibly terminated remaining tasks.");
+                }
+            } catch (InterruptedException e) {
+                executorService.shutdownNow();
+                Thread.currentThread().interrupt();
+                log.warn("Interrupted during shutdown.");
+            }
+            appConfig.setIndexingAvailable(true);
+        }
+
+        return stopIndexing ? new Response("Indexing stopped manually.") : new Response();
     }
-    public Response stopIndexing() {
-        if(!indexingIsAvailable) {
+    public synchronized Response stopIndexing() {
+        if (!appConfig.isIndexingAvailable()) {
             stopIndexing = true;
+            appConfig.setIndexingAvailable(true);
             return new Response();
-        } else return new Response("Индексизация не запущена");
+        } else {
+            return new Response("Indexing is not running.");
+        }
     }
 }

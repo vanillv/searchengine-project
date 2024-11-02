@@ -1,5 +1,6 @@
 package searchenginepackage.services;
 
+import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,32 +18,21 @@ import java.util.stream.Collectors;
 
 @Service
 public class SearchService {
-
-    private final PageRepository pageRepo;
-    private final SiteRepository siteRepo;
-    private final LemmaRepository lemmaRepo;
-    private final IndexRepository indexRepo;
-    private final MorphologyService morphologyService;
-    private final ConnectionService connectionService;
-
     @Autowired
-    public SearchService(PageRepository pageRepo, SiteRepository siteRepo,
-                         LemmaRepository lemmaRepo, IndexRepository indexRepo,
-                         MorphologyService morphologyService, ConnectionService connectionService) {
-        this.pageRepo = pageRepo;
-        this.siteRepo = siteRepo;
-        this.lemmaRepo = lemmaRepo;
-        this.indexRepo = indexRepo;
-        this.morphologyService = morphologyService;
-        this.connectionService = connectionService;
-    }
-
+    private PageRepository pageRepo;
+    @Autowired
+    private SiteRepository siteRepo;
+    @Autowired
+    private LemmaRepository lemmaRepo;
+    @Autowired
+    private IndexRepository indexRepo;
+    private final MorphologyService morphologyService = new MorphologyService();
+    private final ConnectionService connectionService = new ConnectionService();
     public QueryResult searchAllSites(String query, String site, int offset, int limit) {
         QueryResult queryResult = new QueryResult();
         List<QueryResponse> responses = new ArrayList<>();
-
         try {
-            if (!site.trim().isEmpty()) {
+            if (site != null) {
                 SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
                 responses.addAll(searchSite(query, entity, limit));
             } else {
@@ -58,39 +48,31 @@ public class SearchService {
             queryResult.setResult(true);
         } catch (Exception e) {
             queryResult.setResult(false);
-            // Log the error for debugging purposes
             e.printStackTrace();
         }
         return queryResult;
     }
-
     private List<QueryResponse> searchSite(String query, SiteEntity site, int limit) {
         List<QueryResponse> responses = new ArrayList<>();
         Integer siteId = site.getId();
-
         List<String> queryWords = new ArrayList<>(morphologyService.decomposeTextToLemmasWithRank(query).keySet());
         List<LemmaEntity> queryLemmas = fetchRelevantLemmas(queryWords, siteId);
-
         if (queryLemmas.isEmpty()) {
             return responses;
         }
-
         LemmaEntity startingLemma = queryLemmas.get(0);
         List<PageEntity> pageList = fetchRelevantPages(startingLemma, queryLemmas);
-
         for (PageEntity entity : pageList) {
             String html = entity.getContent();
             List<String> snippets = generateSnippets(queryWords, html, limit);
             float relevance = calculateRelevance(entity, queryLemmas);
             String title = connectionService.getTitle(entity.getContent());
-
             for (String snippet : snippets) {
                 responses.add(new QueryResponse(site.getUrl(), entity.getPath(), title, snippet, relevance));
             }
         }
         return responses;
     }
-
     private List<LemmaEntity> fetchRelevantLemmas(List<String> queryWords, Integer siteId) {
         return queryWords.stream()
                 .map(word -> lemmaRepo.getReferenceById(lemmaRepo.findIdByLemmaAndSiteId(word, siteId)))

@@ -16,9 +16,8 @@ public class AppConfig {
     private Integer threadsForSites = 2;
     private Integer threadsForPages = 2;
     private Integer maxPagesPerSite = 20;
-    private boolean indexingAvailable = true;
-    private List<String> sites;
+    private volatile boolean indexingAvailable = true;
+    private List<String> sites = new ArrayList<>();
     public static AppConfig appConfig = new AppConfig();
     private boolean initialised;
-    private List<String> testSites = new ArrayList<>();
 }

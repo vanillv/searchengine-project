@@ -1,6 +1,8 @@
 package searchenginepackage.services;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchenginepackage.dto.statistics.DetailedStatisticsItem;
@@ -11,6 +13,7 @@ import searchenginepackage.entities.SiteEntity;
 import searchenginepackage.repositories.LemmaRepository;
 import searchenginepackage.repositories.PageRepository;
 import searchenginepackage.repositories.SiteRepository;
+import searchenginepackage.responses.Response;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +21,7 @@ import java.util.Random;
 
 @Service
 public class StatisticsServiceImpl implements StatisticsService {
+    private static final Logger log = LoggerFactory.getLogger(StatisticsServiceImpl.class);
     private final Random random = new Random();
     @Autowired
     private PageRepository pageRepo;
@@ -28,14 +32,17 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public StatisticsResponse getStatistics() {
-        List<SiteEntity> siteList = siteRepo.findAll();
+        List<SiteEntity> siteList = new ArrayList<>();
+        try {
+            siteList = siteRepo.findAll();
+        } catch (NullPointerException nullPointer) {
+            log.info("siteList is empty");
+        }
         int siteSize = siteList.size();
         TotalStatistics total = new TotalStatistics();
         total.setSites(siteSize);
         total.setIndexing(true);
-
         List<DetailedStatisticsItem> detailed = new ArrayList<>();
-
         for(int i = 0; i < siteSize; i++) {
             SiteEntity site = siteList.get(i);
             DetailedStatisticsItem item = new DetailedStatisticsItem();
