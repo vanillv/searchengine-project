@@ -2,16 +2,15 @@ package searchenginepackage.controllers;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import searchenginepackage.dto.statistics.StatisticsResponse;
 import searchenginepackage.model.QueryResult;
 import searchenginepackage.responses.Response;
 import searchenginepackage.services.IndexService;
 import searchenginepackage.services.SearchService;
-import searchenginepackage.services.StatisticsServiceImpl;
 
 @Controller
 @RequestMapping("/api")
 public class ApiController {
+    
     private IndexService indexService = new IndexService();
     private SearchService searchService = new SearchService();
     @ResponseBody

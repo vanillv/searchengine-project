@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.stereotype.Service;
+import searchenginepackage.config.AppConfig;
 import searchenginepackage.entities.*;
 import searchenginepackage.model.IndexStatus;
 import searchenginepackage.repositories.*;
@@ -15,30 +16,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
-import static searchenginepackage.config.AppConfig.appConfig;
-
-@AutoConfiguration
-@RequiredArgsConstructor
 @Service
 public class IndexService {
-    private PageRepository pageRepo;
-    private SiteRepository siteRepo;
-    private LemmaRepository lemmaRepo;
-    private IndexRepository indexRepo;
+    private final PageRepository pageRepo;
+    private final SiteRepository siteRepo;
+    private final LemmaRepository lemmaRepo;
+    private final IndexRepository indexRepo;
+
+    @Autowired
+    public IndexService(PageRepository pageRepo, SiteRepository siteRepo,
+                        LemmaRepository lemmaRepo, IndexRepository indexRepo) {
+        this.pageRepo = pageRepo;
+        this.siteRepo = siteRepo;
+        this.lemmaRepo = lemmaRepo;
+        this.indexRepo = indexRepo;
+    }
     private MorphologyService morphologyService = new MorphologyService();
     private ConnectionService connectionService = new ConnectionService();
+    private AppConfig appConfig = AppConfig.getInstance();
     private int threadsForSites = appConfig.getThreadsForSites();
     private ExecutorService executorService = Executors.newFixedThreadPool(threadsForSites);
-    private static final Logger log = LoggerFactory.getLogger(StatisticsServiceImpl.class);
+    private Logger log = LoggerFactory.getLogger(IndexService.class);
     private String lastError;
     private volatile boolean stopIndexing = false;
-    @Autowired
-    private IndexService init(PageRepository pageRepository, SiteRepository siteRepository,
-                              LemmaRepository lemmaRepository, IndexRepository indexRepository) {
-        pageRepo = pageRepository; siteRepo = siteRepository; lemmaRepo = lemmaRepository;
-        indexRepo = indexRepository;
-        return this;
-    }
     public void deleteSiteInfo(String urlToFind) {
         try {
             if (siteRepo.findIdByUrl(urlToFind) != null) {
@@ -48,15 +48,15 @@ public class IndexService {
                 System.out.println("Сайт удален");
             }
         } catch (NullPointerException nullPointer) {
-            log.info("NullPointerException during deletion of sites");
+            log.info("no sites to be deleted");
         };
     }
-    private boolean indexSite(String path) {
+    private boolean indexSite(String path, PageRepository pageRep, SiteRepository siteRep) {
         try {
             deleteSiteInfo(path);
             SiteEntity site = new SiteEntity(path, connectionService.getFileName(), IndexStatus.INDEXING);
-            siteRepo.save(site);
-            log.info("added site: " + site.getUrl());
+            siteRep.save(site);
+            log.info(path);
             String[] map = connectionService.getMap(path).split("\n", appConfig.getMaxPagesPerSite());
             int siteId = site.getId();
             for (String pageAdress : map) {
@@ -64,10 +64,10 @@ public class IndexService {
                 String content = connectionService.getContent(pageAdress);
                 PageEntity page = new PageEntity(siteId, path.split("/", 1)[1],
                         content, connectionService.getHttpCode(path));
-                pageRepo.save(page);
+                pageRep.saveAndFlush(page);
                 saveLemmas(page);
             }
-            siteRepo.save(site);
+            siteRep.saveAndFlush(site);
             return true;
         } catch (Exception e) {
             lastError = e.getMessage();
@@ -147,13 +147,14 @@ public class IndexService {
                             log.info("Indexing stopped manually.");
                             return null;
                         }
-                        indexSite(site);
+                        indexSite(site, pageRepo, siteRepo);
                         log.info("Started indexing site: " + site);
                     }
                     log.info("task ended");
                     return null;
                 };
                 futures.add(executorService.submit(task));
+                log.info(Integer.toString(futures.size()));
                 log.info("added task: " + i);
             }
             for (Future<Void> future : futures) {
@@ -182,8 +183,8 @@ public class IndexService {
                 log.warn("Interrupted during shutdown.");
             }
             appConfig.setIndexingAvailable(true);
+            appConfig.setIndexed(true);
         }
-
         return stopIndexing ? new Response("Indexing stopped manually.") : new Response();
     }
     public synchronized Response stopIndexing() {

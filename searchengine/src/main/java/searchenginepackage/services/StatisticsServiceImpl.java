@@ -1,6 +1,4 @@
 package searchenginepackage.services;
-
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,12 +11,9 @@ import searchenginepackage.entities.SiteEntity;
 import searchenginepackage.repositories.LemmaRepository;
 import searchenginepackage.repositories.PageRepository;
 import searchenginepackage.repositories.SiteRepository;
-import searchenginepackage.responses.Response;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
 @Service
 public class StatisticsServiceImpl implements StatisticsService {
     private static final Logger log = LoggerFactory.getLogger(StatisticsServiceImpl.class);

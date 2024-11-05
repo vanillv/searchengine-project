@@ -25,6 +25,7 @@ public class ConnectionService {
     private static final String CSS_QUERY = "a[href]";
     private static final String ATTRIBUTE_KEY = "href";
     private String fileName;
+    private static AppConfig appConfig = AppConfig.getInstance();
     private static final AtomicLong startOfTime = new AtomicLong();
 
     public int getHttpCode(String path) {
@@ -42,7 +43,7 @@ public class ConnectionService {
         } catch (Exception e) {e.printStackTrace();}
 
         int numberOfThreads;
-        numberOfThreads = AppConfig.appConfig.getThreadsForSites();
+        numberOfThreads = appConfig.getThreadsForPages();
         startOfTime.set(System.currentTimeMillis());
         PageLinkModel linkModel = new PageLinkModel(url);
         String siteMap = "";
