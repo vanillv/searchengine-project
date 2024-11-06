@@ -26,6 +26,9 @@ public class SearchService {
     private IndexRepository indexRepo;
     private final MorphologyService morphologyService = new MorphologyService();
     private final ConnectionService connectionService = new ConnectionService();
+
+
+
     public QueryResult searchAllSites(String query, String site, int offset, int limit) {
         QueryResult queryResult = new QueryResult();
         List<QueryResponse> responses = new ArrayList<>();

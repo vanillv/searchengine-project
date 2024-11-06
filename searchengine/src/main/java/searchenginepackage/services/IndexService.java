@@ -18,19 +18,14 @@ import java.util.concurrent.*;
 
 @Service
 public class IndexService {
-    private final PageRepository pageRepo;
-    private final SiteRepository siteRepo;
-    private final LemmaRepository lemmaRepo;
-    private final IndexRepository indexRepo;
-
     @Autowired
-    public IndexService(PageRepository pageRepo, SiteRepository siteRepo,
-                        LemmaRepository lemmaRepo, IndexRepository indexRepo) {
-        this.pageRepo = pageRepo;
-        this.siteRepo = siteRepo;
-        this.lemmaRepo = lemmaRepo;
-        this.indexRepo = indexRepo;
-    }
+    private PageRepository pageRepo;
+    @Autowired
+    private SiteRepository siteRepo;
+    @Autowired
+    private LemmaRepository lemmaRepo;
+    @Autowired
+    private IndexRepository indexRepo;
     private MorphologyService morphologyService = new MorphologyService();
     private ConnectionService connectionService = new ConnectionService();
     private AppConfig appConfig = AppConfig.getInstance();
