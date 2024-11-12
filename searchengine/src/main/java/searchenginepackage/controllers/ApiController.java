@@ -1,4 +1,6 @@
 package searchenginepackage.controllers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -11,6 +13,7 @@ import searchenginepackage.services.SearchService;
 @Controller
 @RequestMapping("/api")
 public class ApiController {
+    private static final Logger log = LoggerFactory.getLogger(ApiController.class);
     @Autowired
     private IndexService indexService;
     @Autowired
@@ -26,7 +29,7 @@ public class ApiController {
         return ResponseEntity.ok(indexService.stopIndexing());
     }
     @PostMapping("/indexPage")
-    public synchronized ResponseEntity<Response> indexPage(@RequestParam(name = "url") String page) {
+    public synchronized ResponseEntity<Response> indexPage(@RequestParam(name = "page") String page) {
         return ResponseEntity.ok(indexService.indexPage(page));
     }
 

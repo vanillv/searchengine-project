@@ -1,5 +1,6 @@
 package searchenginepackage.services;
 
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,8 +77,7 @@ public class IndexService {
             return false;
         }
     }
-
-    private synchronized void saveLemmas(SiteEntity site, PageEntity page) {
+    private void saveLemmas(SiteEntity site, PageEntity page) {
         String content = page.getContent();
         Integer siteId = page.getSite().getId();
         Map<String, Integer> lemmaMap = morphologyService.decomposeTextToLemmasWithRank(content);
@@ -86,16 +86,14 @@ public class IndexService {
             LemmaEntity lemmaEntity = lemmaRepo.findByLemmaAndSiteId(lemma, siteId);
             if (lemmaEntity == null) {
                 lemmaEntity = new LemmaEntity(lemma, site, 1);
-                lemmaRepo.save(lemmaEntity);
+                lemmaRepo.saveAndFlush(lemmaEntity);
             } else {
                 lemmaEntity.setFrequency(lemmaEntity.getFrequency() + 1);
-                lemmaRepo.save(lemmaEntity);
+                lemmaRepo.saveAndFlush(lemmaEntity);
             }
             IndexEntity index = new IndexEntity(page, lemmaEntity, indexRank);
-            indexRepo.save(index);
+            indexRepo.saveAndFlush(index);
         }
-        indexRepo.flush();
-        lemmaRepo.flush();
     }
 
     public Response indexPage(String path) {

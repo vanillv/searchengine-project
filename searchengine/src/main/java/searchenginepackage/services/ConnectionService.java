@@ -78,12 +78,5 @@ public class ConnectionService {
             Document doc = Jsoup.parse(html);
             return doc.title();
     }
-    public String ensureProtocol(String url) {
-        if (url != null && !url.isEmpty()) {
-            if (!url.startsWith("http://") && !url.startsWith("https://")) {
-                url = "http://" + url; // Add default protocol if missing
-            }
-        }
-        return url;
-    }
+
 }
