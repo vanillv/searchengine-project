@@ -4,6 +4,7 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchenginepackage.config.AppConfig;
 import searchenginepackage.model.PageLinkModel;
@@ -20,12 +21,11 @@ import java.util.concurrent.atomic.AtomicLong;
 @Getter
 @Setter
 public class ConnectionService {
-
+    private AppConfig appConfig = AppConfig.getInstance();
     private static final CopyOnWriteArrayList<String> WRITE_ARRAY_LIST = new CopyOnWriteArrayList<>();
     private static final String CSS_QUERY = "a[href]";
     private static final String ATTRIBUTE_KEY = "href";
-    private String fileName;
-    private static AppConfig appConfig = AppConfig.getInstance();
+
     private static final AtomicLong startOfTime = new AtomicLong();
 
     public int getHttpCode(String path) {
@@ -35,13 +35,16 @@ public class ConnectionService {
             throw new RuntimeException(e);
         }
     }
+    public String getFileName(String url) {
+        try {
+            String fileName;
+            fileName = new URL(url).getHost().replace(".", "_");
+            return fileName;
+        } catch (Exception e) {e.printStackTrace();}
+       return null;
+    }
     public String getMap(String url) {
         startOfTime.set(System.currentTimeMillis());
-        try {
-            fileName = new URL(url).getHost().replace(".", "_");
-            System.out.println("Название: " + fileName);
-        } catch (Exception e) {e.printStackTrace();}
-
         int numberOfThreads;
         numberOfThreads = appConfig.getThreadsForPages();
         startOfTime.set(System.currentTimeMillis());
@@ -75,5 +78,12 @@ public class ConnectionService {
             Document doc = Jsoup.parse(html);
             return doc.title();
     }
-
+    public String ensureProtocol(String url) {
+        if (url != null && !url.isEmpty()) {
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                url = "http://" + url; // Add default protocol if missing
+            }
+        }
+        return url;
+    }
 }

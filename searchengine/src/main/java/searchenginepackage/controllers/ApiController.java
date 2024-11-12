@@ -1,9 +1,9 @@
 package searchenginepackage.controllers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import searchenginepackage.model.QueryResult;
-import searchenginepackage.repositories.PageRepository;
 import searchenginepackage.responses.Response;
 import searchenginepackage.services.IndexService;
 import searchenginepackage.services.SearchService;
@@ -11,9 +11,10 @@ import searchenginepackage.services.SearchService;
 @Controller
 @RequestMapping("/api")
 public class ApiController {
-
-    private IndexService indexService = new IndexService();
-    private SearchService searchService = new SearchService();
+    @Autowired
+    private IndexService indexService;
+    @Autowired
+    private SearchService searchService;
     @ResponseBody
     @GetMapping("/startIndexing")
     public ResponseEntity<Response> startIndexing() {

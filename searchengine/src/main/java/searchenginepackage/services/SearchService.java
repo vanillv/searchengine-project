@@ -27,8 +27,6 @@ public class SearchService {
     private final MorphologyService morphologyService = new MorphologyService();
     private final ConnectionService connectionService = new ConnectionService();
 
-
-
     public QueryResult searchAllSites(String query, String site, int offset, int limit) {
         QueryResult queryResult = new QueryResult();
         List<QueryResponse> responses = new ArrayList<>();
@@ -49,7 +47,6 @@ public class SearchService {
             queryResult.setResult(true);
         } catch (Exception e) {
             queryResult.setResult(false);
-            e.printStackTrace();
         }
         return queryResult;
     }
@@ -61,8 +58,7 @@ public class SearchService {
         if (queryLemmas.isEmpty()) {
             return responses;
         }
-        LemmaEntity startingLemma = queryLemmas.get(0);
-        List<PageEntity> pageList = fetchRelevantPages(startingLemma, queryLemmas);
+        List<PageEntity> pageList = fetchRelevantPages(queryLemmas);
         for (PageEntity entity : pageList) {
             String html = entity.getContent();
             List<String> snippets = generateSnippets(queryWords, html, limit);
@@ -76,30 +72,29 @@ public class SearchService {
     }
     private List<LemmaEntity> fetchRelevantLemmas(List<String> queryWords, Integer siteId) {
         return queryWords.stream()
-                .map(word -> lemmaRepo.getReferenceById(lemmaRepo.findIdByLemmaAndSiteId(word, siteId)))
+                .map(word -> lemmaRepo.findByLemmaAndSiteId(word, siteId))
+                .filter(Objects::nonNull)
                 .filter(lemma -> lemma.getFrequency() < lemmaRepo.count() / 2)
                 .sorted(Comparator.comparing(LemmaEntity::getFrequency).reversed())
                 .collect(Collectors.toList());
     }
-
-    private List<PageEntity> fetchRelevantPages(LemmaEntity startingLemma, List<LemmaEntity> queryLemmas) {
-        List<PageEntity> pageList = pageRepo.findAllBySiteId(indexRepo.findAllPageIdByLemmaId(startingLemma.getSiteId()));
-        return pageList.stream()
-                .filter(page -> queryLemmas.stream()
-                        .allMatch(queryLemma -> indexRepo.findAllLemmaIdByPageId(page.getId()).contains(queryLemma.getId())))
+    private List<PageEntity> fetchRelevantPages(List<LemmaEntity> queryLemmas) {
+        List<PageEntity> pages = queryLemmas.stream()
+                .flatMap(lemma -> indexRepo.findAllPagesByLemma(lemma).stream())
                 .collect(Collectors.toList());
-    }
 
+        return pages;
+    }
     private float calculateRelevance(PageEntity entity, List<LemmaEntity> queryLemmas) {
         return queryLemmas.stream()
-                .map(lemma -> indexRepo.findByPageIdAndLemmaId(entity.getId(), lemma.getId()).getRank())
+                .map(lemma -> indexRepo.findByPageAndLemma(entity, lemma))
+                .filter(Objects::nonNull)
+                .map(IndexEntity::getRankScore)
                 .reduce(0f, Float::sum);
     }
-
     private List<String> generateSnippets(List<String> queryWords, String html, int limit) {
         List<Element> elements = extractElementsWithQueryWords(html, queryWords);
         List<String> snippets = new ArrayList<>();
-
         for (Element element : elements) {
             String text = element.text();
             String highlightedText = highlightQueryWords(text, queryWords);
@@ -107,21 +102,18 @@ public class SearchService {
         }
         return snippets;
     }
-
     private List<Element> extractElementsWithQueryWords(String html, List<String> queryWords) {
         return queryWords.stream()
                 .flatMap(query -> Jsoup.parse(html).getElementsContainingText(query).stream())
                 .distinct()
                 .collect(Collectors.toList());
     }
-
     private String highlightQueryWords(String text, List<String> queryWords) {
         for (String query : queryWords) {
             text = text.replaceAll("(?i)\\b" + query + "\\b", "<b>" + query + "</b>");
         }
         return text;
     }
-
     private String trimSnippet(String text, int limit) {
         if (text.length() <= limit) {
             return text;
@@ -129,6 +121,3 @@ public class SearchService {
         return text.substring(0, limit).trim() + "...";
     }
 }
-
-
-

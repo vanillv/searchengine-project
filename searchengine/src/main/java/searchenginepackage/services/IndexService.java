@@ -1,10 +1,8 @@
 package searchenginepackage.services;
 
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.stereotype.Service;
 import searchenginepackage.config.AppConfig;
 import searchenginepackage.entities.*;
@@ -15,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+
 
 @Service
 public class IndexService {
@@ -38,87 +37,94 @@ public class IndexService {
         try {
             if (siteRepo.findIdByUrl(urlToFind) != null) {
                 SiteEntity site = siteRepo.getReferenceById(siteRepo.findIdByUrl(urlToFind));
+                List<LemmaEntity> lemmaList = lemmaRepo.findAllBySiteId(site.getId());
+                List<IndexEntity> indexEntities = indexRepo.findAllByLemmas(lemmaList);
+                lemmaRepo.deleteAll(lemmaList);
+                pageRepo.deleteAll(pageRepo.findBySiteId(site.getId()));
                 siteRepo.delete(site);
-                pageRepo.deleteAll(pageRepo.findBySiteId(Long.valueOf(site.getId())));
-                System.out.println("Сайт удален");
+                indexRepo.deleteAll(indexEntities);
             }
         } catch (NullPointerException nullPointer) {
             log.info("no sites to be deleted");
         };
     }
     private boolean indexSite(String path, PageRepository pageRep, SiteRepository siteRep) {
+        String siteName = connectionService.getFileName(path);
+
+        SiteEntity site = new SiteEntity(path, siteName , IndexStatus.INDEXING);
         try {
             deleteSiteInfo(path);
-            SiteEntity site = new SiteEntity(path, connectionService.getFileName(), IndexStatus.INDEXING);
-            siteRep.save(site);
-            log.info(path);
+            siteRep.saveAndFlush(site);
             String[] map = connectionService.getMap(path).split("\n", appConfig.getMaxPagesPerSite());
-            int siteId = site.getId();
             for (String pageAdress : map) {
                 log.info("indexing page: " + pageAdress);
                 String content = connectionService.getContent(pageAdress);
-                PageEntity page = new PageEntity(siteId, path.split("/", 1)[1],
+                PageEntity page = new PageEntity(site, pageAdress.split("/", 2)[1],
                         content, connectionService.getHttpCode(path));
                 pageRep.saveAndFlush(page);
-                saveLemmas(page);
+                saveLemmas(site, page);
             }
             siteRep.saveAndFlush(site);
             return true;
         } catch (Exception e) {
+            log.error(e.toString());
             lastError = e.getMessage();
-            log.info("Exception encountered: " + e.getMessage());
+            site.setStatus(IndexStatus.FAILED);
+            site.setLastError(e.getMessage());
+            siteRepo.saveAndFlush(site);
+            log.error("Exception encountered: " + e);
             return false;
         }
     }
-    public Response indexPage(String path) {
-        try {
-                String[] siteAndPath = path.split("/", 2);
-                String content = connectionService.getContent(path);
-                Integer siteId;
-                SiteEntity site;
-                if (siteRepo.existsById(siteRepo.findIdByUrl(siteAndPath[0]))) {
-                    siteId = siteRepo.findIdByUrl(siteAndPath[0]);
-                    site = siteRepo.getReferenceById(siteId);
-                    site.setStatus(IndexStatus.INDEXING);
-                } else {
-                    site = new SiteEntity(siteAndPath[0], connectionService.getFileName(), IndexStatus.INDEXING);
-                    siteId = site.getId();
-                };
-                siteRepo.save(site);
-                PageEntity page = new PageEntity(siteId, siteAndPath[1],
-                        content, connectionService.getHttpCode(path));
-                pageRepo.saveAndFlush(page);
-                saveLemmas(page);
-                site.setStatus(IndexStatus.INDEXED);
-                siteRepo.saveAndFlush(site);
-                return new Response();
-          } catch (Exception e) {
-            lastError = e.getMessage();
-            log.info("new exception: " + lastError);
-            System.out.println(1);
-            return new Response(lastError);
-        }
 
-    }
-    private void saveLemmas(PageEntity page) {
+    private synchronized void saveLemmas(SiteEntity site, PageEntity page) {
         String content = page.getContent();
-        Integer siteId = page.getSiteId();
+        Integer siteId = page.getSite().getId();
         Map<String, Integer> lemmaMap = morphologyService.decomposeTextToLemmasWithRank(content);
         for (String lemma : lemmaMap.keySet()) {
-            LemmaEntity lemmaEntity;
-            Integer indexRank = lemmaMap.get(lemma);
-            if (lemmaRepo.existsById(lemmaRepo.findIdByLemmaAndSiteId(lemma, siteId))) {
-                lemmaEntity = lemmaRepo.getReferenceById(lemmaRepo.findIdByLemmaAndSiteId(lemma, siteId));
-                lemmaEntity.setFrequency(lemmaEntity.getFrequency() + lemmaMap.get(lemma));
+            float indexRank = lemmaMap.get(lemma);
+            LemmaEntity lemmaEntity = lemmaRepo.findByLemmaAndSiteId(lemma, siteId);
+            if (lemmaEntity == null) {
+                lemmaEntity = new LemmaEntity(lemma, site, 1);
+                lemmaRepo.save(lemmaEntity);
             } else {
-                lemmaEntity = new LemmaEntity(lemma, siteId, 1);
+                lemmaEntity.setFrequency(lemmaEntity.getFrequency() + 1);
+                lemmaRepo.save(lemmaEntity);
             }
-            IndexEntity index = new IndexEntity(page.getId(), lemmaEntity.getId(), indexRank);
+            IndexEntity index = new IndexEntity(page, lemmaEntity, indexRank);
             indexRepo.save(index);
-            lemmaRepo.save(lemmaEntity);
         }
         indexRepo.flush();
         lemmaRepo.flush();
+    }
+
+    public Response indexPage(String path) {
+        try {
+            Integer siteId;
+            SiteEntity site;
+            String[] siteAndPath = path.split("/", 2);
+            String content = connectionService.getContent(path);
+            if (siteRepo.existsById(siteRepo.findIdByUrl(siteAndPath[0]))) {
+                siteId = siteRepo.findIdByUrl(siteAndPath[0]);
+                site = siteRepo.getReferenceById(siteId);
+                site.setStatus(IndexStatus.INDEXING);
+            } else {
+                site = new SiteEntity(siteAndPath[0], connectionService.getFileName(path), IndexStatus.INDEXING);
+            };
+            siteRepo.save(site);
+            PageEntity page = new PageEntity(site, siteAndPath[1],
+                    content, connectionService.getHttpCode(path));
+            pageRepo.saveAndFlush(page);
+            saveLemmas(site, page);
+            site.setStatus(IndexStatus.INDEXED);
+            siteRepo.saveAndFlush(site);
+            return new Response();
+        } catch (Exception e) {
+            lastError = e.toString();
+            log.error("new exception: " + lastError);
+            System.out.println(1);
+            return new Response(lastError);
+        }
     }
     public synchronized Response fullIndexing() {
         if (!appConfig.isIndexingAvailable()) {
@@ -139,13 +145,13 @@ public class IndexService {
                     log.info("task started");
                     for (String site : sitePortion) {
                         if (stopIndexing) {
-                            log.info("Indexing stopped manually.");
+                            lastError = "Indexing stopped manually";
+                            log.info(lastError);
                             return null;
                         }
                         indexSite(site, pageRepo, siteRepo);
                         log.info("Started indexing site: " + site);
                     }
-                    log.info("task ended");
                     return null;
                 };
                 futures.add(executorService.submit(task));

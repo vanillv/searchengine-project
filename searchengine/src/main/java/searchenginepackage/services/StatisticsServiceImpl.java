@@ -13,11 +13,9 @@ import searchenginepackage.repositories.PageRepository;
 import searchenginepackage.repositories.SiteRepository;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 @Service
 public class StatisticsServiceImpl implements StatisticsService {
     private static final Logger log = LoggerFactory.getLogger(StatisticsServiceImpl.class);
-    private final Random random = new Random();
     @Autowired
     private PageRepository pageRepo;
     @Autowired

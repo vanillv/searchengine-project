@@ -10,8 +10,9 @@ import java.util.List;
 
 @Repository
 public interface PageRepository extends JpaRepository<PageEntity, Integer> {
-    @Query("SELECT p FROM PageEntity p WHERE p.siteId = :siteId")
-    List<PageEntity> findBySiteId(@Param("siteId") Long siteId);
-    @Query(value = "SELECT p FROM page p WHERE p.siteId = :id", nativeQuery = true)
-    List<PageEntity> findAllBySiteId(List<Integer> id);
+    @Query("SELECT p FROM PageEntity p WHERE p.site.id = :siteId")
+    List<PageEntity> findBySiteId(@Param("siteId") Integer siteId);
+
+    @Query(value = "SELECT * FROM page p WHERE p.site.id IN (:ids)", nativeQuery = true)
+    List<PageEntity> findAllBySiteId(@Param("ids") List<Integer> ids);
 }

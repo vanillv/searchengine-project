@@ -2,3 +2,9 @@
 CHANGE SEARCH CONTROLLER TO GET NEW INFO FROM PAGES OF THE SERVICE
 CHANGE API CONTROLLER TO USE THE INFO FROM SEARCH CONTROLLER
 UTILISE MAIN PAGE CONTROLLER TO USE EVERYTHING TO DO FUNCTIONS
+    - "https://www.lenta.ru"
+    - "https://www.playback.ru"
+    - "https://volochek.life"
+    - "http://radiomv.ru"
+    - "https://ipfran.ru"
+    - "https://dimonvideo.ru"

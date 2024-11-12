@@ -20,11 +20,12 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
 config:
-  threadsForSites: 3
-  threadsForPages: 3
+  threadsForSites: 5
+  threadsForPages: 5
   maxPagesPerSite: 30
   indexingAvailable: true
   sites:
-    - "https://www.lenta.ru"
-    - "https://www.skillbox.ru"
-    - "https://www.playback.ru"
+    - "https://nikoartgallery.com"
+    - "https://www.svetlovka.ru"
+    - "https://www.lutherancathedral.ru"
+
