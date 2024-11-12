@@ -25,11 +25,11 @@ public class ApiController {
     }
     @ResponseBody
     @GetMapping("/stopIndexing")
-    public synchronized ResponseEntity<Response> stopIndexing() {
+    public ResponseEntity<Response> stopIndexing() {
         return ResponseEntity.ok(indexService.stopIndexing());
     }
     @PostMapping("/indexPage")
-    public synchronized ResponseEntity<Response> indexPage(@RequestParam(name = "page") String page) {
+    public ResponseEntity<Response> indexPage(@RequestBody String page) {
         return ResponseEntity.ok(indexService.indexPage(page));
     }
 
