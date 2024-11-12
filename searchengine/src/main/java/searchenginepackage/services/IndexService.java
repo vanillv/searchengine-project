@@ -188,6 +188,7 @@ public class IndexService {
         }
         return stopIndexing ? new Response("Indexing stopped manually.") : new Response();
     }
+
     public synchronized Response stopIndexing() {
         if (!appConfig.isIndexingAvailable()) {
             stopIndexing = true;
