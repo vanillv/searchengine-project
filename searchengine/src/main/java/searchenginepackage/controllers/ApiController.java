@@ -1,4 +1,5 @@
 package searchenginepackage.controllers;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,11 @@ import searchenginepackage.responses.Response;
 import searchenginepackage.services.IndexService;
 import searchenginepackage.services.SearchService;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Controller
 @RequestMapping("/api")
 public class ApiController {
@@ -18,21 +24,25 @@ public class ApiController {
     private IndexService indexService;
     @Autowired
     private SearchService searchService;
-    @ResponseBody
     @GetMapping("/startIndexing")
     public ResponseEntity<Response> startIndexing() {
             return ResponseEntity.ok(indexService.fullIndexing());
     }
-    @ResponseBody
     @GetMapping("/stopIndexing")
     public ResponseEntity<Response> stopIndexing() {
         return ResponseEntity.ok(indexService.stopIndexing());
     }
     @PostMapping("/indexPage")
-    public ResponseEntity<Response> indexPage(@RequestBody String page) {
-        return ResponseEntity.ok(indexService.indexPage(page));
+    @ResponseBody
+    public ResponseEntity<Response> indexPage(HttpServletRequest request) {
+        String pageEntity = request.getParameter("pageEntity");
+        log.info(pageEntity);
+        if (pageEntity == null || pageEntity.isEmpty()) {
+            return ResponseEntity.badRequest().body(new Response("Данная страница находится за пределами сайтов, \n" +
+                    "указанных в конфигурационном файле"));
+        }
+        return ResponseEntity.ok(indexService.indexPage(pageEntity));
     }
-
     @ResponseBody
     @GetMapping("/search")
     public ResponseEntity<QueryResult> search(@RequestParam("query")String query, @RequestParam(value = "site", required = false) String site,

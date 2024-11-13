@@ -2,9 +2,65 @@
 CHANGE SEARCH CONTROLLER TO GET NEW INFO FROM PAGES OF THE SERVICE
 CHANGE API CONTROLLER TO USE THE INFO FROM SEARCH CONTROLLER
 UTILISE MAIN PAGE CONTROLLER TO USE EVERYTHING TO DO FUNCTIONS
-    - "https://www.lenta.ru"
-    - "https://www.playback.ru"
-    - "https://volochek.life"
-    - "http://radiomv.ru"
-    - "https://ipfran.ru"
-    - "https://dimonvideo.ru"
+public Response fullIndexing() {
+        if (!appConfig.isIndexingAvailable()) {
+            return new Response("Indexing is already in progress.");
+        }
+        appConfig.setIndexingAvailable(false);
+        stopIndexing = false;
+        ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getThreadsForSites());
+        List<String> siteList = appConfig.getSites();
+        try {
+            int portionSize = siteList.size() / appConfig.getThreadsForSites();
+            List<Future<Void>> futures = new ArrayList<>();
+            for (int i = 0; i < appConfig.getThreadsForSites(); i++) {
+                int start = i * portionSize;
+                int end = (i == appConfig.getThreadsForSites() - 1) ? siteList.size() : (i + 1) * portionSize;
+                List<String> sitePortion = siteList.subList(start, end);
+                Callable<Void> task = () -> {
+                    log.info("task started");
+                    for (String site : sitePortion) {
+                        if (stopIndexing) {
+                            lastError = "Indexing stopped manually";
+                            log.info(lastError);
+                            return null;
+                        }
+                        indexSite(site, pageRepo, siteRepo);
+                        log.info("Started indexing site: " + site);
+                    }
+                    return null;
+                };
+                futures.add(executorService.submit(task));
+                log.info(Integer.toString(futures.size()));
+                log.info("added task: " + i);
+            }
+            for (Future<Void> future : futures) {
+                try {
+                    future.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("Indexing interrupted.");
+                    return new Response("Indexing was interrupted.");
+                } catch (ExecutionException e) {
+                    log.error("Error during indexing: {}", e.getCause().getMessage());
+                    return new Response("Indexing error: " + e.getCause().getMessage());
+                }
+            }
+
+        } finally {
+            executorService.shutdown();
+            try {
+                if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                    executorService.shutdownNow();
+                    log.info("Forcibly terminated remaining tasks.");
+                }
+            } catch (InterruptedException e) {
+                executorService.shutdownNow();
+                Thread.currentThread().interrupt();
+                log.warn("Interrupted during shutdown.");
+            }
+            appConfig.setIndexingAvailable(true);
+            appConfig.setIndexed(true);
+        }
+        return stopIndexing ? new Response("Indexing stopped manually.") : new Response();
+    }

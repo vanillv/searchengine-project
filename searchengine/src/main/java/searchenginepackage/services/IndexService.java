@@ -1,15 +1,20 @@
 package searchenginepackage.services;
 
-import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import searchenginepackage.config.AppConfig;
 import searchenginepackage.entities.*;
 import searchenginepackage.model.IndexStatus;
 import searchenginepackage.repositories.*;
 import searchenginepackage.responses.Response;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,23 +56,28 @@ public class IndexService {
     }
     private boolean indexSite(String path, PageRepository pageRep, SiteRepository siteRep) {
         String siteName = connectionService.getFileName(path);
-
         SiteEntity site = new SiteEntity(path, siteName , IndexStatus.INDEXING);
         try {
             deleteSiteInfo(path);
             siteRep.saveAndFlush(site);
-            String[] map = connectionService.getMap(path).split("\n", appConfig.getMaxPagesPerSite());
-            for (String pageAdress : map) {
-                log.info("indexing page: " + pageAdress);
-                String content = connectionService.getContent(pageAdress);
-                PageEntity page = new PageEntity(site, pageAdress.split("/", 2)[1],
-                        content, connectionService.getHttpCode(path));
-                pageRep.saveAndFlush(page);
-                saveLemmas(site, page);
+            List<String> map = connectionService.createWorkingMap(connectionService.getMap(path));
+            if (!map.isEmpty()) {
+                for (String pageAdress : map) {
+                    log.info("indexing page: " + pageAdress);
+                    String content = connectionService.getContent(pageAdress);
+                    PageEntity page = new PageEntity(site, pageAdress.split("/", 2)[1],
+                            content, connectionService.getHttpCode(path));
+                    pageRep.saveAndFlush(page);
+                    saveLemmas(site, page);
+                }
+                site.setStatus(IndexStatus.INDEXED);
+                siteRep.saveAndFlush(site);
+                return true;
             }
-            siteRep.saveAndFlush(site);
-            return true;
-        } catch (Exception e) {
+        } catch (JpaSystemException ignored) {
+            log.warn("failed to add: " + ignored.getMessage());
+        }
+        catch (Exception e) {
             log.error(e.toString());
             lastError = e.getMessage();
             site.setStatus(IndexStatus.FAILED);
@@ -76,6 +86,7 @@ public class IndexService {
             log.error("Exception encountered: " + e);
             return false;
         }
+        return false;
     }
     private void saveLemmas(SiteEntity site, PageEntity page) {
         String content = page.getContent();
@@ -95,7 +106,6 @@ public class IndexService {
             indexRepo.saveAndFlush(index);
         }
     }
-
     public Response indexPage(String path) {
         try {
             Integer siteId;
@@ -124,7 +134,7 @@ public class IndexService {
             return new Response(lastError);
         }
     }
-    public synchronized Response fullIndexing() {
+    public Response fullIndexing() {
         if (!appConfig.isIndexingAvailable()) {
             return new Response("Indexing is already in progress.");
         }
@@ -132,46 +142,25 @@ public class IndexService {
         stopIndexing = false;
         ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getThreadsForSites());
         List<String> siteList = appConfig.getSites();
-        try {
-            int portionSize = siteList.size() / appConfig.getThreadsForSites();
-            List<Future<Void>> futures = new ArrayList<>();
-            for (int i = 0; i < appConfig.getThreadsForSites(); i++) {
-                int start = i * portionSize;
-                int end = (i == appConfig.getThreadsForSites() - 1) ? siteList.size() : (i + 1) * portionSize;
-                List<String> sitePortion = siteList.subList(start, end);
-                Callable<Void> task = () -> {
-                    log.info("task started");
-                    for (String site : sitePortion) {
-                        if (stopIndexing) {
-                            lastError = "Indexing stopped manually";
-                            log.info(lastError);
-                            return null;
-                        }
-                        indexSite(site, pageRepo, siteRepo);
-                        log.info("Started indexing site: " + site);
-                    }
-                    return null;
-                };
-                futures.add(executorService.submit(task));
-                log.info(Integer.toString(futures.size()));
-                log.info("added task: " + i);
-            }
-            for (Future<Void> future : futures) {
-                try {
-                    future.get();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    log.warn("Indexing interrupted.");
-                    return new Response("Indexing was interrupted.");
-                } catch (ExecutionException e) {
-                    log.error("Error during indexing: {}", e.getCause().getMessage());
-                    return new Response("Indexing error: " + e.getCause().getMessage());
+        Response initialResponse = new Response();
+        for (String site : siteList) {
+            executorService.submit(() -> {
+                if (stopIndexing) {
+                    log.info("Indexing stopped manually.");
+                    return;
                 }
-            }
-
-        } finally {
-            executorService.shutdown();
+                try {
+                    indexSite(site, pageRepo, siteRepo);
+                    log.info("Started indexing site: " + site);
+                } catch (Exception e) {
+                    log.error("Error indexing site " + site, e);
+                    lastError = "Error indexing site: " + e.getMessage();
+                }
+            });
+        }
+        new Thread(() -> {
             try {
+                executorService.shutdown();
                 if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
                     executorService.shutdownNow();
                     log.info("Forcibly terminated remaining tasks.");
@@ -179,15 +168,15 @@ public class IndexService {
             } catch (InterruptedException e) {
                 executorService.shutdownNow();
                 Thread.currentThread().interrupt();
-                log.warn("Interrupted during shutdown.");
+                log.warn("Interrupted during executor shutdown.");
+            } finally {
+                appConfig.setIndexingAvailable(true);
+                appConfig.setIndexed(true);
             }
-            appConfig.setIndexingAvailable(true);
-            appConfig.setIndexed(true);
-        }
-        return stopIndexing ? new Response("Indexing stopped manually.") : new Response();
+        }).start();
+        return initialResponse;
     }
-
-    public synchronized Response stopIndexing() {
+    public Response stopIndexing() {
         if (!appConfig.isIndexingAvailable()) {
             stopIndexing = true;
             appConfig.setIndexingAvailable(true);
