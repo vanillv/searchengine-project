@@ -1,6 +1,7 @@
 package searchenginepackage.services;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
+import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,27 +23,25 @@ public class MorphologyService {
         }
     }
     private String[] processText(String text) {
-            String[] words = text.toLowerCase(Locale.ROOT)
-                    .replaceAll("ё", "е").replaceAll(regex, " ").split(" ");
-            StringBuffer buffer = new StringBuffer();
-            for (String word : words) {
-                boolean rightWordForm = false;
-                if (morphology.checkString(word) && !word.trim().isEmpty()) {
-                    List<String> morphInfo = morphology.getMorphInfo(word);
-                        for (String form : morphInfo) {
-                            for (String particle : particlesNames) {
-                                if (!form.matches(particle)) {
-                                    rightWordForm = true;
-                                }
-                            }
-                            if (rightWordForm) {
-                                    buffer.append(morphology.getNormalForms(word).get(0) + "-");
-                         }
-                     }
+        if (text == null || text.isBlank()) {
+            return new String[0];
+        }
+        String[] words = text.toLowerCase(Locale.ROOT)
+                .replaceAll("ё", "е").replaceAll(regex, " ").split(" ");
+        StringBuffer buffer = new StringBuffer();
+        for (String word : words) {
+            word = word.trim();
+            if (morphology.checkString(word) && !word.isBlank() && word.length() > 2) {
+                List<String> morphInfo = morphology.getMorphInfo(word);
+                for (String form : morphInfo) {
+                    if (Arrays.stream(particlesNames).noneMatch(form::contains)) {
+                        buffer.append(morphology.getNormalForms(word).get(0)).append("-/");
+                    }
                 }
             }
-            String[] result = buffer.toString().split("-");
-            return result;
+        }
+        String[] result = buffer.toString().split("-/");
+        return result;
     }
     public Map<String, Integer> decomposeTextToLemmasWithRank(String text) {
         try {
@@ -64,6 +63,41 @@ public class MorphologyService {
         };
         return null;
     }
+    public List<String> lemmatizeElementContent(Element element) {
+        String textContent = element.text();
+        String[] words = textContent.toLowerCase(Locale.ROOT)
+                .replaceAll("ё", "е")
+                .replaceAll(regex, " ")
+                .split("\\s+");
+        Set<String> lemmas = new HashSet<>();
+        for (String word : words) {
+            word = word.trim();
+            if (!word.isEmpty() && morphology.checkString(word)) {
+                List<String> normalForms = morphology.getNormalForms(word);
+                if (normalForms != null && !normalForms.isEmpty()) {
+                    lemmas.add(normalForms.get(0));
+                }
+            }
+        }
+
+        return new ArrayList<>(lemmas);
+    }
+
+    public String lemmatizeWord(String word) {
+        if (word == null || word.isBlank()) {
+            return "";
+        }
+        String processedWord = word.toLowerCase(Locale.ROOT)
+                .replaceAll("ё", "е").replaceAll(regex, " ").trim();
+        if (!processedWord.isEmpty() && morphology.checkString(processedWord)) {
+            List<String> normalForms = morphology.getNormalForms(processedWord);
+            if (!normalForms.isEmpty()) {
+                return normalForms.get(0);
+            }
+        }
+        return word;
+    }
+
 }
 
 

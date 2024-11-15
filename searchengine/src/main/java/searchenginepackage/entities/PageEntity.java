@@ -3,6 +3,7 @@ package searchenginepackage.entities;
 import lombok.Data;
 
 import jakarta.persistence.*;
+import lombok.ToString;
 import org.hibernate.query.Page;
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ public class PageEntity {
     @Column(name = "content", columnDefinition = "MEDIUMTEXT", nullable = false)
     private String content;
     @OneToMany(mappedBy = "page", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<IndexEntity> indices = new ArrayList<>();
     public PageEntity(SiteEntity site, String path, String content, int code) {
         this.site = site;

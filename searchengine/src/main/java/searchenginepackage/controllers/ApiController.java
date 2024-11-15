@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import searchenginepackage.model.PageRequest;
 import searchenginepackage.model.QueryResult;
 import searchenginepackage.responses.Response;
 import searchenginepackage.services.IndexService;
@@ -13,6 +14,7 @@ import searchenginepackage.services.SearchService;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -35,13 +37,19 @@ public class ApiController {
     @PostMapping("/indexPage")
     @ResponseBody
     public ResponseEntity<Response> indexPage(HttpServletRequest request) {
-        String pageEntity = request.getParameter("pageEntity");
-        log.info(pageEntity);
-        if (pageEntity == null || pageEntity.isEmpty()) {
-            return ResponseEntity.badRequest().body(new Response("Данная страница находится за пределами сайтов, \n" +
-                    "указанных в конфигурационном файле"));
+        log.info(request.getContentType());
+        try {
+            log.info("Body: {}", request.getReader().lines().collect(Collectors.joining(System.lineSeparator())));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        return ResponseEntity.ok(indexService.indexPage(pageEntity));
+        String pageEntity = request.getParameter("pageEntity");
+        log.info("pageEntity parameter: {}", pageEntity);
+
+        if (pageEntity == null || pageEntity.isEmpty()) {
+            return ResponseEntity.badRequest().body(new Response("Invalid page entity."));
+        }
+        return ResponseEntity.ok(indexService.indexPage(""));
     }
     @ResponseBody
     @GetMapping("/search")

@@ -23,5 +23,6 @@ public class IndexEntity {
         this.lemma = lemma;
         this.rankScore = rankScore; // Ensure to assign rank as well
     }
+
 }
 

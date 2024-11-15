@@ -29,5 +29,17 @@ public class SiteEntity {
         this.status = status;
         this.statusTime = LocalDateTime.now();
     }
+
+    @Override
+    public String toString() {
+        return "SiteEntity{" +
+                "id=" + id +
+                ", status=" + status +
+                ", statusTime=" + statusTime +
+                ", lastError='" + lastError + '\'' +
+                ", url='" + url + '\'' +
+                ", name='" + name + '\'' +
+                '}';
+    }
 }
 
