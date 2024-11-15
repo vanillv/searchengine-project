@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import searchenginepackage.model.PageRequest;
 import searchenginepackage.model.QueryResult;
 import searchenginepackage.responses.Response;
 import searchenginepackage.services.IndexService;
@@ -37,7 +36,7 @@ public class ApiController {
     @PostMapping("/indexPage")
     @ResponseBody
     public ResponseEntity<Response> indexPage(HttpServletRequest request) {
-        log.info(request.getContentType());
+        log.info("content type: {}", request.getContentType());
         try {
             log.info("Body: {}", request.getReader().lines().collect(Collectors.joining(System.lineSeparator())));
         } catch (IOException e) {
