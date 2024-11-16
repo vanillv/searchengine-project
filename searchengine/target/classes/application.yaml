@@ -14,18 +14,23 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: update  # Can be 'none', 'update', 'create', or 'create-drop'
+      ddl-auto: create  # Can be 'none', 'update', 'create', or 'create-drop'
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
 config:
   threadsForSites: 5
   threadsForPages: 5
   maxPagesPerSite: 30
   indexingAvailable: true
   sites:
-    - "https://www.svetlovka.ru"
+    - "https://www.svetlovka.ru/"
     - "https://dimonvideo.ru/"
-    - "https://et-cetera.ru"
+    - "https://dombulgakova.ru/"
+    - "https://volochek.life/"
 

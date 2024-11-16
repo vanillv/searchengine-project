@@ -97,7 +97,6 @@ public class MorphologyService {
         }
         return word;
     }
-
 }
 
 

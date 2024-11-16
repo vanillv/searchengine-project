@@ -1,26 +1,16 @@
 package searchenginepackage.services;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import searchenginepackage.config.AppConfig;
 import searchenginepackage.entities.*;
 import searchenginepackage.model.IndexStatus;
 import searchenginepackage.repositories.*;
 import searchenginepackage.responses.Response;
-
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-
-
 @Service
 public class IndexService {
     @Autowired
@@ -56,17 +46,18 @@ public class IndexService {
     }
     private boolean indexSite(String path, PageRepository pageRep, SiteRepository siteRep) {
         String siteName = connectionService.getFileName(path);
-        SiteEntity site = new SiteEntity(path, siteName , IndexStatus.INDEXING);
+        SiteEntity site = new SiteEntity(path, siteName, IndexStatus.INDEXING);
         try {
             deleteSiteInfo(path);
             siteRep.saveAndFlush(site);
             List<String> map = connectionService.createWorkingMap(connectionService.getMap(path));
             if (!map.isEmpty()) {
-                for (String pageAdress : map) {
-                    log.info("indexing page: " + pageAdress);
-                    String content = connectionService.getContent(pageAdress);
-                    PageEntity page = new PageEntity(site, pageAdress.split("/", 2)[1],
-                            content, connectionService.getHttpCode(path));
+                log.info("Starting indexing for site: " + siteName + " | Total pages: " + map.size());
+                for (String pageAddress : map) {
+                    log.info("Indexing page: " + pageAddress);
+                    String content = connectionService.getContent(pageAddress);
+                    PageEntity page = new PageEntity(site, pageAddress.split("/", 2)[1],
+                            content, connectionService.getHttpCode(pageAddress));
                     pageRep.saveAndFlush(page);
                     saveLemmas(site, page);
                 }
@@ -74,37 +65,30 @@ public class IndexService {
                 siteRep.saveAndFlush(site);
                 return true;
             }
-        } catch (JpaSystemException ignored) {
-            log.warn("failed to add: " + ignored.getMessage());
-        }
-        catch (Exception e) {
-            log.error(e.toString());
-            lastError = e.getMessage();
+        } catch (Exception e) {
             site.setStatus(IndexStatus.FAILED);
             site.setLastError(e.getMessage());
             siteRepo.saveAndFlush(site);
-            log.error("Exception encountered: " + e);
+            log.error("Exception while indexing site: " + path, e);
             return false;
         }
         return false;
     }
+
     private void saveLemmas(SiteEntity site, PageEntity page) {
         String content = page.getContent();
-        Integer siteId = page.getSite().getId();
         Map<String, Integer> lemmaMap = morphologyService.decomposeTextToLemmasWithRank(content);
-        for (String lemma : lemmaMap.keySet()) {
-            float indexRank = lemmaMap.get(lemma);
-            LemmaEntity lemmaEntity = lemmaRepo.findByLemmaAndSiteId(lemma, siteId);
+        lemmaMap.forEach((lemma, frequency) -> {
+            LemmaEntity lemmaEntity = lemmaRepo.findByLemmaAndSiteId(lemma, site.getId());
             if (lemmaEntity == null) {
                 lemmaEntity = new LemmaEntity(lemma, site, 1);
-                lemmaRepo.saveAndFlush(lemmaEntity);
             } else {
                 lemmaEntity.setFrequency(lemmaEntity.getFrequency() + 1);
-                lemmaRepo.saveAndFlush(lemmaEntity);
             }
-            IndexEntity index = new IndexEntity(page, lemmaEntity, indexRank);
+            lemmaRepo.saveAndFlush(lemmaEntity);
+            IndexEntity index = new IndexEntity(page, lemmaEntity, frequency);
             indexRepo.saveAndFlush(index);
-        }
+        });
     }
     public Response indexPage(String path) {
         try {

@@ -10,11 +10,7 @@ import searchenginepackage.model.QueryResult;
 import searchenginepackage.responses.Response;
 import searchenginepackage.services.IndexService;
 import searchenginepackage.services.SearchService;
-
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Controller

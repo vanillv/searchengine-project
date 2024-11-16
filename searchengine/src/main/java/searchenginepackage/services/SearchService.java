@@ -93,15 +93,13 @@ public class SearchService {
             float relevance = calculateRelevance(entity, queryLemmas);
             log.info("Calculated relevance for page '{}': {}", entity.getPath(), relevance);
             for (String snippet : snippets) {
-                //log.info("Adding snippet for page '{}': {}", entity.getPath(), snippet);
                 String siteUrl = site.getUrl();
                 String entityPath = entity.getPath();
                 String title = connectionService.getTitle(entity.getContent());
-                log.info("site url: " + site.getUrl() + "\n, entity path: " + entity.getPath() + "\n, title: " + title + "\n, snippet: " + snippet + "\n, relevance: " + relevance);
+                log.info("Data before adding the result: \n" + "site url: " + site.getUrl() + "\nentity path: " + entity.getPath() + "\ntitle: " + title + "\nsnippet: " + snippet + "\nrelevance: " + relevance);
                 responses.add(new SingleResult(siteUrl, entityPath, title, snippet, relevance));
             }
         }
-        //log.info("Completed search for query: '{}' on site: {}, found {} results", query, site.getUrl(), responses.toString());
         return responses;
     }
     private List<LemmaEntity> fetchRelevantLemmas(List<String> queryWords, Integer siteId) {
@@ -120,12 +118,31 @@ public class SearchService {
         return pages;
     }
     private float calculateRelevance(PageEntity entity, List<LemmaEntity> queryLemmas) {
+        String htmlContent = entity.getContent();
+        String title = connectionService.getTitle(htmlContent);
+        String body = connectionService.getBody(htmlContent);
+        Map<String, Integer> titleLemmas = morphologyService.decomposeTextToLemmasWithRank(title);
+        Map<String, Integer> bodyLemmas = morphologyService.decomposeTextToLemmasWithRank(body);
+        float titleWeight = 2.0f;
+        float bodyWeight = 1.0f;
         return queryLemmas.stream()
-                .map(lemma -> indexRepo.findByPageAndLemma(entity, lemma))
-                .filter(Objects::nonNull)
-                .map(IndexEntity::getRankScore)
+                .map(lemma -> {
+                    IndexEntity indexEntity = indexRepo.findByPageAndLemma(entity, lemma);
+                    if (indexEntity == null) {
+                        return 0f;
+                    }
+                    String lemmaName = lemma.getLemma();
+                    float rank = indexEntity.getRankScore();
+                    if (titleLemmas.containsKey(lemmaName)) {
+                        rank *= titleWeight;
+                    } else if (bodyLemmas.containsKey(lemmaName)) {
+                        rank *= bodyWeight;
+                    }
+                    return rank;
+                })
                 .reduce(0f, Float::sum);
     }
+
     private List<String> generateSnippets(List<String> queryWords, String html) {
         Document document = Jsoup.parse(html);
         Set<String> snippets = new LinkedHashSet<>();

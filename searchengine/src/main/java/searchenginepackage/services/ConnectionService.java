@@ -32,9 +32,7 @@ public class ConnectionService {
     private static final CopyOnWriteArrayList<String> WRITE_ARRAY_LIST = new CopyOnWriteArrayList<>();
     private static final String CSS_QUERY = "a[href]";
     private static final String ATTRIBUTE_KEY = "href";
-
     private static final AtomicLong startOfTime = new AtomicLong();
-
     public int getHttpCode(String path) {
         try {
             return Jsoup.connect(path).userAgent("Mozilla").timeout(5000).get().connection().response().statusCode();
@@ -108,11 +106,10 @@ public class ConnectionService {
     }
     private boolean isValidURL(String url) {
         try {
-            new URL(url); // Attempts to parse the URL
+            new URL(url);
             return true;
         } catch (MalformedURLException e) {
-            return false; // Returns false if URL is invalid
+            return false;
         }
     }
-
 }
