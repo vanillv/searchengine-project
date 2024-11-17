@@ -46,7 +46,7 @@ public class ConnectionService {
         } catch (Exception e) {e.printStackTrace();}
        return null;
     }
-    public String getMap(String url) {
+    private String getMap(String url) {
         startOfTime.set(System.currentTimeMillis());
         int numberOfThreads;
         numberOfThreads = appConfig.getThreadsForPages();
@@ -102,7 +102,8 @@ public class ConnectionService {
             Document doc = Jsoup.parse(html);
             return doc.title();
     }
-    public List<String> createWorkingMap(String htmlMap) {
+    public List<String> fetchAndProcessSiteMap(String url) {
+        String htmlMap = getMap(url);
         int limit = AppConfig.getInstance().getMaxPagesPerSite();
         List<String> map = new ArrayList<>(Arrays.stream(htmlMap.split("\n")).toList());
         List<String> result = new ArrayList<>();

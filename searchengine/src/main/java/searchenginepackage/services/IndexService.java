@@ -52,12 +52,12 @@ public class IndexService {
         try {
             deleteSiteInfo(path);
             siteRep.saveAndFlush(site);
-            List<String> map = connectionService.createWorkingMap(connectionService.getMap(path));
+            List<String> map = connectionService.fetchAndProcessSiteMap(path);
             if (!map.isEmpty()) {
                 log.info("Starting indexing for site: " + siteName + " | Total pages: " + map.size());
                 for (String pageAddress : map) {
                     log.info("Indexing page: " + pageAddress);
-                    String content = connectionService.getContent(pageAddress);
+                    String content = morphologyService.sanitizeContent(connectionService.getContent(pageAddress));
                     URL url = new URL(pageAddress);
                     String baseUrl = url.getProtocol() + "://" + url.getHost();
                     String urlPath = url.getPath();
