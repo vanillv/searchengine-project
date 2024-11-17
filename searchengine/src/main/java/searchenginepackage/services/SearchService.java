@@ -34,42 +34,34 @@ public class SearchService {
         log.info("\nquery: " + query + "\nsite: " + site + "\noffset: " + offset + "\nlimit: " + limit);
         QueryResult queryResult = new QueryResult();
         List<SingleResult> resultList = new ArrayList<>();
-
         try {
             if (site != null) {
-                // Search a specific site
                 SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
-                List<SingleResult> results = searchSite(query, entity, limit);
+                List<SingleResult> results = searchSite(query, entity);
                 resultList.addAll(results);
             } else {
                 log.info("Searching across all sites");
-                int totalCount = 0;
                 for (SiteEntity entity : siteRepo.findAll()) {
                     log.info("Searched through site: " + entity.getUrl());
-                    List<SingleResult> siteResults = searchSite(query, entity, limit);
+                    List<SingleResult> siteResults = searchSite(query, entity);
                     resultList.addAll(siteResults);
-                    totalCount += siteResults.size();
-                    if (resultList.size() >= offset + limit) {
-                        break;
-                    }
                 }
-                queryResult.setCount(totalCount);
             }
             log.info("Results found: " + resultList.size());
+            queryResult.setCount(resultList.size());
             if (!resultList.isEmpty()) {
                 resultList.sort(Comparator.comparing(SingleResult::getRelevance).reversed());
                 queryResult.setData(resultList);
             }
             queryResult.setResult(true);
-            log.info("Result ready: " + queryResult.toString());
+            log.info("Result ready: " + "\nresult: " + queryResult.isResult() + "\ncount: "+ queryResult.getCount() + "\ndata: " + queryResult.getData());
         } catch (Exception e) {
             log.info("Search disrupted by exception: " + e.getLocalizedMessage());
             queryResult.setResult(false);
         }
         return queryResult;
     }
-
-    private List<SingleResult> searchSite(String query, SiteEntity site, int limit) {
+    private List<SingleResult> searchSite(String query, SiteEntity site) {
         log.info("query: " + query);
         log.info("site: " + site);
         List<SingleResult> responses = new ArrayList<>();
@@ -104,11 +96,14 @@ public class SearchService {
                 String siteUrl = site.getUrl();
                 String entityPath = entity.getPath();
                 String title = connectionService.getTitle(entity.getContent());
+                if (title == null || title.isEmpty()) {
+                    title = "No title available";
+                }
                 log.info("Data before adding the result: \n" + "site url: " + site.getUrl() + "\nentity path: " + entity.getPath() + "\ntitle: " + title + "\nsnippet: " + snippet + "\nrelevance: " + relevance);
                 responses.add(new SingleResult(siteUrl, entityPath, title, snippet, relevance));
             }
         }
-        return responses.stream().limit(limit).toList();
+        return responses;
     }
     private List<LemmaEntity> fetchRelevantLemmas(List<String> queryWords, Integer siteId) {
         List<LemmaEntity> relevantLemmas = queryWords.stream()
@@ -200,5 +195,4 @@ public class SearchService {
         }
         return isQueryMatched ? snippetBuilder.toString().trim() : "";
     }
-
 }

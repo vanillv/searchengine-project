@@ -49,14 +49,21 @@ public class ApiController {
             e.printStackTrace();
         }
         if (decodedUrl == null || decodedUrl.isEmpty()) {
-            return ResponseEntity.badRequest().body(new Response("Invalid page entity."));
+            return ResponseEntity.badRequest().body(new Response("Empty page adress"));
         }
-        return ResponseEntity.ok(indexService.indexPage(decodedUrl));
+        Response response = indexService.indexPage(decodedUrl);
+        if (response.isResult()) {
+            return ResponseEntity.ok(response);
+        }return ResponseEntity.badRequest().body(response);
     }
     @ResponseBody
     @GetMapping("/search")
     public ResponseEntity<QueryResult> search(@RequestParam("query")String query, @RequestParam(value = "site", required = false) String site,
                                               @RequestParam("offset") Integer offset, @RequestParam("limit") Integer limit) {
-        return ResponseEntity.ok(searchService.searchAllSites(query, site, limit, offset));
+        QueryResult result = searchService.searchAllSites(query, site, limit, offset);
+        if (result.isResult()) {
+            return ResponseEntity.ok(searchService.searchAllSites(query, site, limit, offset));
+        }
+        return ResponseEntity.badRequest().body(result);
     }
 }
