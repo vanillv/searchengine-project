@@ -108,7 +108,7 @@ public class SearchService {
                 responses.add(new SingleResult(siteUrl, entityPath, title, snippet, relevance));
             }
         }
-        return responses;
+        return responses.stream().limit(limit).toList();
     }
     private List<LemmaEntity> fetchRelevantLemmas(List<String> queryWords, Integer siteId) {
         List<LemmaEntity> relevantLemmas = queryWords.stream()
