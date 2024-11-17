@@ -31,26 +31,35 @@ public class SearchService {
     private static final Logger log = LoggerFactory.getLogger(SearchService.class);
 
     public QueryResult searchAllSites(String query, String site, int offset, int limit) {
+        log.info("\nquery: " + query + "\nsite: " + site + "\noffset: " + offset + "\nlimit: " + limit);
         QueryResult queryResult = new QueryResult();
         List<SingleResult> resultList = new ArrayList<>();
+
         try {
             if (site != null) {
+                // Search a specific site
                 SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
                 List<SingleResult> results = searchSite(query, entity, limit);
                 resultList.addAll(results);
             } else {
                 log.info("Searching across all sites");
+                int totalCount = 0;
                 for (SiteEntity entity : siteRepo.findAll()) {
-                    log.info("Searched through site: "+ entity.getUrl());
-                    resultList.addAll(searchSite(query, entity, limit));
+                    log.info("Searched through site: " + entity.getUrl());
+                    List<SingleResult> siteResults = searchSite(query, entity, limit);
+                    resultList.addAll(siteResults);
+                    totalCount += siteResults.size();
+                    if (resultList.size() >= offset + limit) {
+                        break;
+                    }
                 }
+                queryResult.setCount(totalCount);
             }
             log.info("Results found: " + resultList.size());
             if (!resultList.isEmpty()) {
                 resultList.sort(Comparator.comparing(SingleResult::getRelevance).reversed());
                 queryResult.setData(resultList);
             }
-            queryResult.setCount(queryResult.getData().size());
             queryResult.setResult(true);
             log.info("Result ready: " + queryResult.toString());
         } catch (Exception e) {
@@ -59,6 +68,7 @@ public class SearchService {
         }
         return queryResult;
     }
+
     private List<SingleResult> searchSite(String query, SiteEntity site, int limit) {
         log.info("query: " + query);
         log.info("site: " + site);
@@ -85,11 +95,9 @@ public class SearchService {
             }
         }
         for (PageEntity entity : pageList) {
-            //log.info("Processing page with path: {}", entity.getPath());
             String html = entity.getContent();
             log.info("page content length: " + html.length());
             List<String> snippets = generateSnippets(queryWords, html);
-            //log.info("Generated {} snippets for page: {}", snippets.size(), entity.getPath());
             float relevance = calculateRelevance(entity, queryLemmas);
             log.info("Calculated relevance for page '{}': {}", entity.getPath(), relevance);
             for (String snippet : snippets) {
