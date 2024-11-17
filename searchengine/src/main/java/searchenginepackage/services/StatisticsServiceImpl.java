@@ -54,7 +54,6 @@ public class StatisticsServiceImpl implements StatisticsService {
 
             detailed.add(item);
         }
-
         StatisticsResponse response = new StatisticsResponse();
         StatisticsData data = new StatisticsData();
         data.setTotal(total);

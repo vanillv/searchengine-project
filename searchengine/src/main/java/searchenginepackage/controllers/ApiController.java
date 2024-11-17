@@ -11,6 +11,9 @@ import searchenginepackage.responses.Response;
 import searchenginepackage.services.IndexService;
 import searchenginepackage.services.SearchService;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLConnection;
+import java.net.URLDecoder;
 import java.util.stream.Collectors;
 
 @Controller
@@ -23,28 +26,32 @@ public class ApiController {
     private SearchService searchService;
     @GetMapping("/startIndexing")
     public ResponseEntity<Response> startIndexing() {
-            return ResponseEntity.ok(indexService.fullIndexing());
+        Response indexingResult = indexService.fullIndexing();
+        if (indexingResult.isResult()) {
+            return ResponseEntity.ok(indexingResult);
+        } else return ResponseEntity.badRequest().body(indexingResult);
     }
     @GetMapping("/stopIndexing")
     public ResponseEntity<Response> stopIndexing() {
-        return ResponseEntity.ok(indexService.stopIndexing());
+        Response stopIndexingResult = indexService.stopIndexing();
+        if (stopIndexingResult.isResult()) {
+            return ResponseEntity.ok(stopIndexingResult);
+        } else return ResponseEntity.badRequest().body(stopIndexingResult);
     }
     @PostMapping("/indexPage")
     @ResponseBody
-    public ResponseEntity<Response> indexPage(HttpServletRequest request) {
-        log.info("content type: {}", request.getContentType());
+    public ResponseEntity<Response> indexPage(@RequestBody String page) {
+        String decodedUrl = "";
         try {
-            log.info("Body: {}", request.getReader().lines().collect(Collectors.joining(System.lineSeparator())));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            decodedUrl = URLDecoder.decode(page, "UTF-8").replace("url=", "");
+            log.info(decodedUrl);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
-        String pageEntity = request.getParameter("pageEntity");
-        log.info("pageEntity parameter: {}", pageEntity);
-
-        if (pageEntity == null || pageEntity.isEmpty()) {
+        if (decodedUrl == null || decodedUrl.isEmpty()) {
             return ResponseEntity.badRequest().body(new Response("Invalid page entity."));
         }
-        return ResponseEntity.ok(indexService.indexPage(""));
+        return ResponseEntity.ok(indexService.indexPage(decodedUrl));
     }
     @ResponseBody
     @GetMapping("/search")

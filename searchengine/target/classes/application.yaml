@@ -29,8 +29,8 @@ config:
   maxPagesPerSite: 30
   indexingAvailable: true
   sites:
-    - "https://www.svetlovka.ru/"
-    - "https://dimonvideo.ru/"
-    - "https://dombulgakova.ru/"
-    - "https://volochek.life/"
+    - "https://www.svetlovka.ru"
+    - "https://dimonvideo.ru"
+    - "https://dombulgakova.ru"
+    - "https://volochek.life"
 

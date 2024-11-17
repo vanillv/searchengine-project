@@ -8,6 +8,8 @@ import searchenginepackage.entities.*;
 import searchenginepackage.model.IndexStatus;
 import searchenginepackage.repositories.*;
 import searchenginepackage.responses.Response;
+
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -56,7 +58,10 @@ public class IndexService {
                 for (String pageAddress : map) {
                     log.info("Indexing page: " + pageAddress);
                     String content = connectionService.getContent(pageAddress);
-                    PageEntity page = new PageEntity(site, pageAddress.split("/", 2)[1],
+                    URL url = new URL(pageAddress);
+                    String baseUrl = url.getProtocol() + "://" + url.getHost();
+                    String urlPath = url.getPath();
+                    PageEntity page = new PageEntity(site, urlPath,
                             content, connectionService.getHttpCode(pageAddress));
                     pageRep.saveAndFlush(page);
                     saveLemmas(site, page);
@@ -90,31 +95,37 @@ public class IndexService {
             indexRepo.saveAndFlush(index);
         });
     }
-    public Response indexPage(String path) {
+    public Response indexPage(String page) {
+        Integer siteId;
+        SiteEntity site = null;
         try {
-            Integer siteId;
-            SiteEntity site;
-            String[] siteAndPath = path.split("/", 2);
-            String content = connectionService.getContent(path);
-            if (siteRepo.existsById(siteRepo.findIdByUrl(siteAndPath[0]))) {
-                siteId = siteRepo.findIdByUrl(siteAndPath[0]);
+            URL url = new URL(page);
+            String baseUrl = url.getProtocol() + "://" + url.getHost();
+            String path = url.getPath();
+            log.info("\nsite: " + baseUrl + "\npath: " + path);
+            String content = connectionService.getContent(page);
+            if (siteRepo.findIdByUrl(baseUrl) != null) {
+                siteId = siteRepo.findIdByUrl(baseUrl);
                 site = siteRepo.getReferenceById(siteId);
+                log.info(site.toString());
                 site.setStatus(IndexStatus.INDEXING);
             } else {
-                site = new SiteEntity(siteAndPath[0], connectionService.getFileName(path), IndexStatus.INDEXING);
+                site = new SiteEntity(baseUrl, connectionService.getFileName(page), IndexStatus.INDEXING);
             };
             siteRepo.save(site);
-            PageEntity page = new PageEntity(site, siteAndPath[1],
-                    content, connectionService.getHttpCode(path));
-            pageRepo.saveAndFlush(page);
-            saveLemmas(site, page);
+            PageEntity pageEntity = new PageEntity(site, path,
+                    content, connectionService.getHttpCode(page));
+            pageRepo.saveAndFlush(pageEntity);
+            saveLemmas(site, pageEntity);
             site.setStatus(IndexStatus.INDEXED);
             siteRepo.saveAndFlush(site);
             return new Response();
         } catch (Exception e) {
             lastError = e.toString();
-            log.error("new exception: " + lastError);
-            System.out.println(1);
+            site.setStatus(IndexStatus.FAILED);
+            site.setLastError(e.getMessage());
+            siteRepo.saveAndFlush(site);
+            log.error("Exception while indexing page: " + page, e);
             return new Response(lastError);
         }
     }

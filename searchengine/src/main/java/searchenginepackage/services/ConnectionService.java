@@ -2,25 +2,23 @@ package searchenginepackage.services;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchenginepackage.config.AppConfig;
 import searchenginepackage.model.PageLinkModel;
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
@@ -64,14 +62,35 @@ public class ConnectionService {
     }
     @SneakyThrows
     public String getContent(String path) {
-        String pageContent = "";
-        URLConnection connection = null;
-            connection = new URL(path).openConnection();
-            Scanner scanner = new Scanner(connection.getInputStream());
-            scanner.useDelimiter("\\Z");
-            pageContent = scanner.next();
-            scanner.close();
-        return pageContent;
+        int retries = 3;
+        while (retries > 0) {
+            try {
+                Connection.Response response = Jsoup.connect(path)
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36")
+                        .header("Accept-Language", "ru-RU,ru;q=0.9")
+                        .header("Accept-Encoding", "gzip, deflate, br")
+                        .header("Connection", "keep-alive")
+                        .timeout(5000)
+                        .execute();
+                if (response.statusCode() == 200) {
+                    return response.body();
+                } else {
+                    log.warn("Received non-OK status code: {} for URL: {}", response.statusCode(), path);
+                    return null;
+                }
+            } catch (IOException e) {
+                log.error("Error connecting to URL: {}", path, e);
+                retries--;
+                if (retries > 0) {
+                    log.info("Retrying... {} attempts left.", retries);
+                    TimeUnit.SECONDS.sleep(2);
+                } else {
+                    log.error("Failed to retrieve content after multiple attempts.");
+                    return null;
+                }
+            }
+        }
+        return null;
     }
     @SneakyThrows
     public String getBody(String html) {
