@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import searchenginepackage.config.AppConfig;
 import searchenginepackage.model.QueryResult;
 import searchenginepackage.responses.Response;
 import searchenginepackage.services.IndexService;
@@ -26,10 +27,14 @@ public class ApiController {
     private SearchService searchService;
     @GetMapping("/startIndexing")
     public ResponseEntity<Response> startIndexing() {
-        Response indexingResult = indexService.fullIndexing();
-        if (indexingResult.isResult()) {
-            return ResponseEntity.ok(indexingResult);
-        } else return ResponseEntity.badRequest().body(indexingResult);
+        try {
+            Response indexingResult = indexService.fullIndexing();
+            if (indexingResult.isResult()) {
+                return ResponseEntity.ok(indexingResult);
+            } else return ResponseEntity.badRequest().body(indexingResult);
+        } finally {
+         stopIndexing();
+        }
     }
     @GetMapping("/stopIndexing")
     public ResponseEntity<Response> stopIndexing() {

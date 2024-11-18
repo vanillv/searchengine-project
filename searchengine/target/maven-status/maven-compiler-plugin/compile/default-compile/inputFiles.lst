@@ -3,6 +3,7 @@ D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\entitie
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\repositories\SiteRepository.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\entities\PageEntity.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\services\StatisticsServiceImpl.java
+D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\model\SingleResult.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\responses\Response.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\config\AppConfig.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\dto\statistics\TotalStatistics.java
@@ -10,7 +11,6 @@ D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\entitie
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\services\StatisticsService.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\model\IndexStatus.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\entities\LemmaEntity.java
-D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\controllers\SearchController.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\services\ConnectionService.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\repositories\IndexRepository.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\services\MorphologyService.java
@@ -20,7 +20,6 @@ D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\dto\sta
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\controllers\ApiController.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\repositories\LemmaRepository.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\dto\statistics\DetailedStatisticsItem.java
-D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\model\QueryResponse.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\services\SearchService.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\model\QueryResult.java
 D:\platforms\searchengine\searchengine\src\main\java\searchenginepackage\Application.java

@@ -120,6 +120,7 @@ public class IndexService {
             site.setStatus(IndexStatus.INDEXED);
             siteRepo.saveAndFlush(site);
             return new Response();
+
         } catch (Exception e) {
             lastError = e.toString();
             site.setStatus(IndexStatus.FAILED);
@@ -134,6 +135,7 @@ public class IndexService {
             return new Response("Indexing is already in progress.");
         }
         appConfig.setIndexingAvailable(false);
+        appConfig.setIndexed(false);
         stopIndexing = false;
         ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getThreadsForSites());
         List<String> siteList = appConfig.getSites();
@@ -167,12 +169,14 @@ public class IndexService {
             } finally {
                 appConfig.setIndexingAvailable(true);
                 appConfig.setIndexed(true);
+                log.info("indexing available: " + appConfig.isIndexingAvailable());
+                log.info("indexed: " + appConfig.isIndexed());
             }
         }).start();
         return initialResponse;
     }
     public Response stopIndexing() {
-        if (!appConfig.isIndexingAvailable()) {
+        if (!appConfig.isIndexingAvailable() || appConfig.isIndexed()) {
             stopIndexing = true;
             appConfig.setIndexingAvailable(true);
             return new Response();

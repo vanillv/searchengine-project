@@ -2,16 +2,14 @@ searchenginepackage\dto\statistics\StatisticsData.class
 searchenginepackage\model\QueryResult.class
 searchenginepackage\repositories\LemmaRepository.class
 searchenginepackage\model\PageLinkModel.class
-searchenginepackage\services\IndexService$1.class
 searchenginepackage\controllers\StatisticsController.class
 searchenginepackage\Application.class
 searchenginepackage\repositories\SiteRepository.class
 searchenginepackage\services\StatisticsServiceImpl.class
 searchenginepackage\responses\Response.class
-searchenginepackage\controllers\SearchController.class
 searchenginepackage\entities\IndexEntity.class
 searchenginepackage\config\AppConfig.class
-searchenginepackage\model\QueryResponse.class
+searchenginepackage\model\SingleResult.class
 searchenginepackage\services\StatisticsService.class
 searchenginepackage\services\MorphologyService.class
 searchenginepackage\services\SearchService.class
