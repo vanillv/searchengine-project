@@ -56,6 +56,10 @@ public class IndexService {
             if (!map.isEmpty()) {
                 log.info("Starting indexing for site: " + siteName + " | Total pages: " + map.size());
                 for (String pageAddress : map) {
+                    if (stopIndexing) {
+                        log.info("Indexing stopped manually.");
+                        return false;
+                    }
                     log.info("Indexing page: " + pageAddress);
                     String content = morphologyService.sanitizeContent(connectionService.getContent(pageAddress));
                     URL url = new URL(pageAddress);
@@ -83,17 +87,22 @@ public class IndexService {
     private void saveLemmas(SiteEntity site, PageEntity page) {
         String content = page.getContent();
         Map<String, Integer> lemmaMap = morphologyService.decomposeTextToLemmasWithRank(content);
-        lemmaMap.forEach((lemma, frequency) -> {
-            LemmaEntity lemmaEntity = lemmaRepo.findByLemmaAndSiteId(lemma, site.getId());
-            if (lemmaEntity == null) {
-                lemmaEntity = new LemmaEntity(lemma, site, 1);
-            } else {
-                lemmaEntity.setFrequency(lemmaEntity.getFrequency() + 1);
-            }
-            lemmaRepo.saveAndFlush(lemmaEntity);
-            IndexEntity index = new IndexEntity(page, lemmaEntity, frequency);
-            indexRepo.saveAndFlush(index);
-        });
+        try {
+            lemmaMap.forEach((lemma, frequency) -> {
+                if (stopIndexing) {
+                    throw new RuntimeException();
+                }
+                LemmaEntity lemmaEntity = lemmaRepo.findByLemmaAndSiteId(lemma, site.getId());
+                if (lemmaEntity == null) {
+                    lemmaEntity = new LemmaEntity(lemma, site, 1);
+                } else {
+                    lemmaEntity.setFrequency(lemmaEntity.getFrequency() + 1);
+                }
+                lemmaRepo.saveAndFlush(lemmaEntity);
+                IndexEntity index = new IndexEntity(page, lemmaEntity, frequency);
+                indexRepo.saveAndFlush(index);
+            });
+        } catch (RuntimeException runtimeException) {log.info("lemmatization stopped");}
     }
     public Response indexPage(String page) {
         Integer siteId;
@@ -130,7 +139,7 @@ public class IndexService {
             return new Response(lastError);
         }
     }
-    public Response fullIndexing() {
+    public synchronized Response fullIndexing() {
         if (!appConfig.isIndexingAvailable()) {
             return new Response("Indexing is already in progress.");
         }
@@ -168,20 +177,21 @@ public class IndexService {
                 log.warn("Interrupted during executor shutdown.");
             } finally {
                 appConfig.setIndexingAvailable(true);
-                appConfig.setIndexed(true);
+                if (!stopIndexing) {
+                    appConfig.setIndexed(true);
+                }
                 log.info("indexing available: " + appConfig.isIndexingAvailable());
                 log.info("indexed: " + appConfig.isIndexed());
             }
         }).start();
         return initialResponse;
     }
-    public Response stopIndexing() {
-        if (!appConfig.isIndexingAvailable() || appConfig.isIndexed()) {
+    public synchronized Response stopIndexing() {
+        if (!stopIndexing || appConfig.isIndexed() || !appConfig.isIndexingAvailable()) {
             stopIndexing = true;
-            appConfig.setIndexingAvailable(true);
+            appConfig.isIndexingAvailable();
             return new Response();
-        } else {
-            return new Response("Indexing is not running.");
         }
+                return new Response("Indexing is not running.");
     }
 }

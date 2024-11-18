@@ -27,14 +27,10 @@ public class ApiController {
     private SearchService searchService;
     @GetMapping("/startIndexing")
     public ResponseEntity<Response> startIndexing() {
-        try {
-            Response indexingResult = indexService.fullIndexing();
-            if (indexingResult.isResult()) {
-                return ResponseEntity.ok(indexingResult);
-            } else return ResponseEntity.badRequest().body(indexingResult);
-        } finally {
-         stopIndexing();
-        }
+      Response indexingResult = indexService.fullIndexing();
+      if (indexingResult.isResult()) {
+          return ResponseEntity.ok(indexingResult);
+      } else return ResponseEntity.badRequest().body(indexingResult);
     }
     @GetMapping("/stopIndexing")
     public ResponseEntity<Response> stopIndexing() {
