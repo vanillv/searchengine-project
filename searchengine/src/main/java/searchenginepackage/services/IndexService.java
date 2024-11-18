@@ -57,7 +57,7 @@ public class IndexService {
                 log.info("Starting indexing for site: " + siteName + " | Total pages: " + map.size());
                 for (String pageAddress : map) {
                     if (stopIndexing) {
-                        log.info("Indexing stopped manually.");
+                        log.error("Indexing stopped manually.");
                         return false;
                     }
                     log.info("Indexing page: " + pageAddress);
@@ -102,7 +102,7 @@ public class IndexService {
                 IndexEntity index = new IndexEntity(page, lemmaEntity, frequency);
                 indexRepo.saveAndFlush(index);
             });
-        } catch (RuntimeException runtimeException) {log.info("lemmatization stopped");}
+        } catch (RuntimeException runtimeException) {log.error("lemmatization stopped");}
     }
     public Response indexPage(String page) {
         Integer siteId;
@@ -152,7 +152,7 @@ public class IndexService {
         for (String site : siteList) {
             executorService.submit(() -> {
                 if (stopIndexing) {
-                    log.info("Indexing stopped manually.");
+                    log.error("Indexing stopped manually.");
                     return;
                 }
                 try {
