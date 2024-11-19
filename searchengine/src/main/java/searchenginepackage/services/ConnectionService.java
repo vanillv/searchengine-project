@@ -60,6 +60,28 @@ public class ConnectionService {
 
         return siteMap;
     }
+    public List<String> fetchAndProcessSiteMap(String url) {
+        String htmlMap = getMap(url);
+        int limit = AppConfig.getInstance().getMaxPagesPerSite();
+        List<String> map = new ArrayList<>(Arrays.stream(htmlMap.split("\n")).toList());
+        List<String> result = new ArrayList<>();
+        int i = 0;
+        for (String pageAdress : map) {
+            try {
+                if (isValidURL(pageAdress)) {
+                    result.add(pageAdress);
+                    i++;
+                }
+                if (i == limit) {
+                    break;
+                }
+            } catch (Exception e) {
+                log.error("Caught exception" + e.fillInStackTrace());
+            }
+
+        }
+        return result;
+    }
     @SneakyThrows
     public String getContent(String path) {
         int retries = 3;
@@ -102,28 +124,7 @@ public class ConnectionService {
             Document doc = Jsoup.parse(html);
             return doc.title();
     }
-    public List<String> fetchAndProcessSiteMap(String url) {
-        String htmlMap = getMap(url);
-        int limit = AppConfig.getInstance().getMaxPagesPerSite();
-        List<String> map = new ArrayList<>(Arrays.stream(htmlMap.split("\n")).toList());
-        List<String> result = new ArrayList<>();
-        int i = 0;
-        for (String pageAdress : map) {
-            try {
-                if (isValidURL(pageAdress)) {
-                    result.add(pageAdress);
-                    i++;
-                }
-                if (i == limit) {
-                    break;
-                }
-            } catch (Exception e) {
-                log.error("Caught exception" + e.fillInStackTrace());
-            }
 
-        }
-        return result;
-    }
     private boolean isValidURL(String url) {
         try {
             new URL(url);
@@ -131,5 +132,10 @@ public class ConnectionService {
         } catch (MalformedURLException e) {
             return false;
         }
+    }
+
+    public static void main(String[] args) {
+        ConnectionService service = new ConnectionService();
+
     }
 }

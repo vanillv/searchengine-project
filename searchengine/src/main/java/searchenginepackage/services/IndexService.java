@@ -63,8 +63,8 @@ public class IndexService {
                     log.info("Indexing page: " + pageAddress);
                     String content = morphologyService.sanitizeContent(connectionService.getContent(pageAddress));
                     URL url = new URL(pageAddress);
-                    String baseUrl = url.getProtocol() + "://" + url.getHost();
                     String urlPath = url.getPath();
+                    if (urlPath.trim().isEmpty()) {urlPath = "/default";}
                     PageEntity page = new PageEntity(site, urlPath,
                             content, connectionService.getHttpCode(pageAddress));
                     pageRep.saveAndFlush(page);
@@ -98,6 +98,7 @@ public class IndexService {
                 } else {
                     lemmaEntity.setFrequency(lemmaEntity.getFrequency() + 1);
                 }
+                log.info("lemma saved: " + lemmaEntity.getLemma());
                 lemmaRepo.saveAndFlush(lemmaEntity);
                 IndexEntity index = new IndexEntity(page, lemmaEntity, frequency);
                 indexRepo.saveAndFlush(index);
