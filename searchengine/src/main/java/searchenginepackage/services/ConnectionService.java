@@ -133,9 +133,4 @@ public class ConnectionService {
             return false;
         }
     }
-
-    public static void main(String[] args) {
-        ConnectionService service = new ConnectionService();
-
-    }
 }

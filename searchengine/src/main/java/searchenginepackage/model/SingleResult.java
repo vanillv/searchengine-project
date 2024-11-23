@@ -4,13 +4,13 @@ import lombok.Data;
 
 @Data
 public class SingleResult {
-    private String site;
+    private String siteName;
     private String uri;
     private String title;
     private String snippet;
     private float relevance;
-    public SingleResult(String site, String uri, String title, String snippet, float relevance) {
-        this.site = site;
+    public SingleResult(String siteName, String uri, String title, String snippet, float relevance) {
+        this.siteName = siteName;
         this.uri = uri;
         this.title = title;
         this.snippet = snippet;
@@ -20,7 +20,7 @@ public class SingleResult {
     @Override
     public String toString() {
         return "{" +
-                "site='" + site + '\'' +
+                "site='" + siteName + '\'' +
                 ", title='" + title + '\'' +
                 ", uri='" + uri + '\'' +
                 ", snippet='" + snippet + '\'' +
