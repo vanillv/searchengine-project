@@ -15,7 +15,7 @@ import java.util.List;
 @ConfigurationProperties(prefix = "config")
 public class AppConfig {
     private Integer threadsForSites = 2;
-    private Integer threadsForPages = 2;
+    private Integer threadsForPages = 3;
     private Integer maxPagesPerSite = 200;
     private boolean indexingAvailable = true;
     private List<String> sites;

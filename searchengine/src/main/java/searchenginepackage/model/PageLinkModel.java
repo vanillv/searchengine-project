@@ -12,11 +12,13 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.RecursiveTask;
 
-public class PageLinkModel  extends RecursiveTask<String> {
-    private static String link;
+public class PageLinkModel extends RecursiveTask<String> {
+
+    private final String link;
     private static final CopyOnWriteArrayList<String> WRITE_ARRAY_LIST = new CopyOnWriteArrayList<>();
     private static final String CSS_QUERY = "a[href]";
     private static final String ATTRIBUTE_KEY = "href";
+
     public PageLinkModel(String link) {
         this.link = link.trim();
     }
@@ -39,9 +41,9 @@ public class PageLinkModel  extends RecursiveTask<String> {
                 String attributeUrl = element.absUrl(ATTRIBUTE_KEY);
                 if (!attributeUrl.isEmpty() && attributeUrl.startsWith(link) && !WRITE_ARRAY_LIST.contains(attributeUrl) && !attributeUrl
                         .contains("#")) {
-                    PageLinkModel linkModel = new PageLinkModel(attributeUrl);
-                    linkModel.fork();
-                    writeArrayList.add(linkModel);
+                    PageLinkModel linkExecutor = new PageLinkModel(attributeUrl);
+                    linkExecutor.fork();
+                    writeArrayList.add(linkExecutor);
                     WRITE_ARRAY_LIST.add(attributeUrl);
                 }
             }

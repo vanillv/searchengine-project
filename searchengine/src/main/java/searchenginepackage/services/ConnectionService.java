@@ -48,18 +48,21 @@ public class ConnectionService {
     }
     private String getMap(String url) {
         startOfTime.set(System.currentTimeMillis());
-        int numberOfThreads;
-        numberOfThreads = appConfig.getThreadsForPages();
-        startOfTime.set(System.currentTimeMillis());
-        PageLinkModel linkModel = new PageLinkModel(url);
+        int numberOfThreads = appConfig.getThreadsForPages();
+        System.out.printf("Starting site mapping for %s with %d threads.%n", url, numberOfThreads);
         String siteMap = "";
-        siteMap = new ForkJoinPool(numberOfThreads).invoke(linkModel);
-
+        try {
+            PageLinkModel linkModel = new PageLinkModel(url);
+            siteMap = new ForkJoinPool(numberOfThreads).invoke(linkModel);
+        } catch (Exception e) {
+            System.err.println("Error during site mapping: " + e.getMessage());
+            e.printStackTrace();
+        }
         long timeStop = (System.currentTimeMillis() - startOfTime.get()) / 1_000;
-        System.out.printf("Обработка сайта заняла: %d секунд.%n", timeStop);
-
+        System.out.printf("Site processing took: %d seconds.%n", timeStop);
         return siteMap;
     }
+
     public List<String> fetchAndProcessSiteMap(String url) {
         String htmlMap = getMap(url);
         int limit = AppConfig.getInstance().getMaxPagesPerSite();
