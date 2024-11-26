@@ -12,7 +12,7 @@
    Spring Web
    Spring Thymeleaf
    Spring JDBC
-   Spring Hibernate
+   Hibernate
 
    #### Database:
    MySQl
@@ -22,6 +22,7 @@
 
    #### Data parsing & connection: 
    Jsoup
+   
 
    #### Utilities:
    Apache common lang
