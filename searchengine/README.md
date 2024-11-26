@@ -12,6 +12,7 @@
    Spring Web
    Spring Thymeleaf
    Spring JDBC
+   Spring Hibernate
 
    #### Database:
    MySQl
