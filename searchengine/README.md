@@ -32,7 +32,13 @@
    Apply MySQL model to MySQL database, either from MySQL 
    command line, or MySQL Workbench application through 
    forward engineering.
-   Start the MySQL service and open connection. 
+   Start the MySQL service and open connection.
+   Add all needed sites in application.yaml config.
    This application is now ready to launch.
+   (If this application can't connect to the database, 
+   change the port to whatever port local MySQL connection
+   uses.) 
+   then open web browser, and type "http://localhost:8010"
+   or any other port that can be configured in application.yaml
 
    
