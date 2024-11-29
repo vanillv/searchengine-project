@@ -3,13 +3,13 @@ package searchenginepackage.model;
 import lombok.Data;
 
 @Data
-public class SingleResult {
+public class SiteResult {
     private String siteName;
     private String uri;
     private String title;
     private String snippet;
     private float relevance;
-    public SingleResult(String siteName, String uri, String title, String snippet, float relevance) {
+    public SiteResult(String siteName, String uri, String title, String snippet, float relevance) {
         this.siteName = siteName;
         this.uri = uri;
         this.title = title;

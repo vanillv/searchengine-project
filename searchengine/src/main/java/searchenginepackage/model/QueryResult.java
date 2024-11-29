@@ -8,7 +8,7 @@ import java.util.List;
 public class QueryResult {
     private boolean result;
     private Integer count = 0;
-    private List<SingleResult> data = new ArrayList<>();
+    private List<SiteResult> data = new ArrayList<>();
 
     @Override
     public String toString() {

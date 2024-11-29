@@ -83,7 +83,11 @@ public class MorphologyService {
         return new ArrayList<>(lemmas);
     }
     public String sanitizeContent(String content) {
-        return content.replaceAll("[^\\u0000-\\uFFFF]", "?");
+        try {
+            String result = content.replaceAll("[^\\u0000-\\uFFFF]", "?");
+            return result;
+        } catch (Exception e) {log.error(e.getMessage());}
+        return content;
     }
 
     public String lemmatizeWord(String word) {

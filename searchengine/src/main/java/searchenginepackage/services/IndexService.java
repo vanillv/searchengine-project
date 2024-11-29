@@ -61,7 +61,12 @@ public class IndexService {
                         return false;
                     }
                     log.info("Indexing page: " + pageAddress);
-                    String content = morphologyService.sanitizeContent(connectionService.getContent(pageAddress));
+                    String content = connectionService.getContent(pageAddress);
+                    if (content == null || content.isEmpty()) {
+                        log.info("page content is null");
+                        continue;
+                    }
+                    content = morphologyService.sanitizeContent(content);
                     URL url = new URL(pageAddress);
                     String urlPath = url.getPath();
                     if (urlPath.trim().isEmpty()) {urlPath = "/default";}

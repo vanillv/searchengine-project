@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchenginepackage.entities.*;
-import searchenginepackage.model.SingleResult;
+import searchenginepackage.model.SiteResult;
 import searchenginepackage.model.QueryResult;
 import searchenginepackage.repositories.IndexRepository;
 import searchenginepackage.repositories.LemmaRepository;
@@ -33,26 +33,38 @@ public class SearchService {
     public QueryResult searchAllSites(String query, String site, int offset, int limit) {
         log.info("\nquery: " + query + "\nsite: " + site + "\noffset: " + offset + "\nlimit: " + limit);
         QueryResult queryResult = new QueryResult();
-        List<SingleResult> resultList = new ArrayList<>();
+        List<SiteResult> resultList = new ArrayList<>();
         try {
             if (site != null) {
                 SiteEntity entity = siteRepo.getReferenceById(siteRepo.findIdByUrl(site));
-                List<SingleResult> results = searchSite(query, entity);
+                List<SiteResult> results = searchSite(query, entity);
                 resultList.addAll(results);
             } else {
                 log.info("Searching across all sites");
                 for (SiteEntity entity : siteRepo.findAll()) {
                     log.info("Searched through site: " + entity.getUrl());
-                    List<SingleResult> siteResults = searchSite(query, entity);
+                    List<SiteResult> siteResults = searchSite(query, entity);
                     resultList.addAll(siteResults);
                 }
             }
-            log.info("Results found: " + resultList.size());
-            queryResult.setCount(resultList.size());
             if (!resultList.isEmpty()) {
-                resultList.sort(Comparator.comparing(SingleResult::getRelevance).reversed());
-                queryResult.setData(resultList);
+                resultList.sort(Comparator.comparing(SiteResult::getRelevance).reversed());
             }
+            int totalCount = resultList.size();
+            queryResult.setCount(totalCount);
+            if (limit == 0) {limit = 10; offset = 0;}
+            if ((offset <= totalCount || offset - (offset-totalCount) > 0) && totalCount != 0) {
+                int toIndex = Math.min(offset + limit, totalCount);
+                if (toIndex < totalCount) {resultList = resultList.subList(offset, toIndex);}
+                  else {
+                      toIndex = toIndex - (toIndex - totalCount);
+                      resultList = resultList.subList(offset, toIndex);
+                  };
+            } else {
+                resultList = new ArrayList<>();
+            }
+            log.info("Results found: " + resultList.size());
+            queryResult.setData(resultList);
             queryResult.setResult(true);
             log.info("Result ready: " + "\nresult: " + queryResult.isResult() + "\ncount: "+ queryResult.getCount() + "\ndata: " + queryResult.getData());
         } catch (Exception e) {
@@ -61,10 +73,10 @@ public class SearchService {
         }
         return queryResult;
     }
-    private List<SingleResult> searchSite(String query, SiteEntity site) {
+    private List<SiteResult> searchSite(String query, SiteEntity site) {
         log.info("query: " + query);
         log.info("site: " + site);
-        List<SingleResult> responses = new ArrayList<>();
+        List<SiteResult> responses = new ArrayList<>();
         Integer siteId = site.getId();
         List<String> queryWords = new ArrayList<>(morphologyService.decomposeTextToLemmasWithRank(query).keySet());
         log.info("Decomposed query into words/lemmas: {}", queryWords);
@@ -100,7 +112,7 @@ public class SearchService {
                     title = "No title available";
                 }
                 log.info("Data before adding the result: \n" + "site url: " + site.getUrl() + "\nentity path: " + entity.getPath() + "\ntitle: " + title + "\nsnippet: " + snippet + "\nrelevance: " + relevance);
-                responses.add(new SingleResult(siteUrl, entityPath, title, snippet, relevance));
+                responses.add(new SiteResult(siteUrl, entityPath, title, snippet, relevance));
             }
         }
         return responses;
