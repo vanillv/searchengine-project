@@ -68,16 +68,12 @@ public class ConnectionService {
         List<String> map = new ArrayList<>(Arrays.stream(htmlMap.split("\n")).toList());
         List<String> result = new ArrayList<>();
         int i = 0;
-          int limit = appConfig.getMaxPagesPerSite();//for quicker tests
         for (String pageAdress : map) {
             try {
                 if (isValidURL(pageAdress)) {
                     result.add(pageAdress);
                     i++;
                 }
-                  if (i == limit) {  //same
-                    break;
-                  }
             } catch (Exception e) {
                 log.error("Caught exception" + e.fillInStackTrace());
             }
